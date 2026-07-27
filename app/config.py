@@ -1,28 +1,39 @@
-# app/config.py
-# app/config.py
-from pydantic_settings import BaseSettings, SettingsConfigDict  # <-- IMPORT THIS
 from typing import Optional
-import os
+
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
 
 class Settings(BaseSettings):
     APP_NAME: str = "HOPEMO"
     APP_VERSION: str = "1.0.0"
     ENVIRONMENT: str = "development"
-    OPENAI_API_KEY: str
-    OPENAI_MODEL: str = "gpt-3.5-turbo"  # Since you wanted GPT-3.5
-    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
-    PINECONE_API_KEY: Optional[str] = None
-    PINECONE_ENVIRONMENT: Optional[str] = None
-    PINECONE_INDEX: Optional[str] = None
-    SECRET_KEY: str
-    CHROMA_PERSIST_DIR: str = "./data/chromadb"
-    USE_PINECONE: bool = False
-    HF_TOKEN: Optional[str] = None 
-    DATABASE_URL: str = "sqlite:///./data/hopemo.db"
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./hopemo.db")
-    OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
-    # V2 STANDARD WAY:
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    OPENAI_API_KEY: str
+    OPENAI_MODEL: str = "gpt-4o-mini"
+    OPENAI_EMBEDDING_MODEL: str = "text-embedding-3-small"
+
+    SECRET_KEY: str
+    JWT_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    HF_TOKEN: Optional[str] = None
+
+    MONGODB_URI: str
+    MONGODB_DB: str = "hopemo"
+    ALLOWED_ORIGINS: str = "http://localhost:5173"
+
+    SMTP_HOST: Optional[str] = None
+    SMTP_PORT: int = 587
+    SMTP_USERNAME: Optional[str] = None
+    SMTP_PASSWORD: Optional[str] = None
+    SMTP_FROM_EMAIL: Optional[str] = None
+    SMTP_USE_TLS: bool = True
+    OTP_EXPIRE_MINUTES: int = 10
+
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
+
 
 settings = Settings()

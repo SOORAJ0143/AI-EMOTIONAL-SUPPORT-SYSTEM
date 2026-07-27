@@ -3,11 +3,12 @@ import openai
 from detoxify import Detoxify
 import asyncio
 from dotenv import load_dotenv
+from app.config import settings
 load_dotenv()
 
 class SafetyDetector:
     def __init__(self):
-        self.openai_client = openai.AsyncOpenAI()
+        self.openai_client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
         self.detoxify_model = Detoxify('original')  # Multilingual
 
     async def check(self, text: str) -> dict:

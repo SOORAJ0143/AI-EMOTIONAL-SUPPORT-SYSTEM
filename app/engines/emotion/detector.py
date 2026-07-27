@@ -3,6 +3,7 @@ import torch
 from transformers import AutoModelForSequenceClassification, AutoTokenizer
 import numpy as np
 import os
+from typing import Optional
 
 class EmotionDetector:
     def __init__(self, model_name="SamLowe/roberta-base-go_emotions"):
@@ -29,8 +30,12 @@ class EmotionDetector:
 
 # For real-time scoring, we also need to map to our 9 dimensions
 class EmotionalAnalyzer:
-    def __init__(self):
-        self.detector = EmotionDetector()
+    def __init__(self, model_name: str = "SamLowe/roberta-base-go_emotions"):
+        # Do not load the ~500 MB model while Uvicorn imports this module.  In
+        # reload mode, that can briefly leave more than one Python process
+        # holding model memory and exhaust Windows' commit/page-file limit.
+        self.model_name = model_name
+        self.detector: Optional[EmotionDetector] = None
         # Mapping from RoBERTa emotions to our dimensions
         self.mapping = {
             "anxiety": ["nervousness", "fear"],
@@ -45,6 +50,8 @@ class EmotionalAnalyzer:
         }
     
     async def analyze(self, text: str) -> dict:
+        if self.detector is None:
+            self.detector = EmotionDetector(self.model_name)
         scores = await self.detector.predict(text)
         result = {}
         for dimension, related in self.mapping.items():

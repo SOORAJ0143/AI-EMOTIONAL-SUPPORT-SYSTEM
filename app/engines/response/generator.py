@@ -3,17 +3,19 @@ import json
 import os
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from dotenv import load_dotenv
+from app.config import settings
 
 load_dotenv()
 
 class ResponseGenerator:
     def __init__(self, examples_file="data/my_data.json"):
-        self.client = openai.AsyncOpenAI()
+        self.client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY, timeout=10.0, max_retries=0)
         self.examples = self._load_examples(examples_file)
         self.system_prompt_base = """You are HOPEMO, an emotionally intelligent assistant.
 Be concise, warm, supportive, and natural. Never sound clinical.
 Use the provided context (memories, knowledge, associative recalls) to personalize.
 Keep responses under 150 words.
+Vary your phrasing, reflection style, and follow-up questions naturally. Do not reuse stock openings in consecutive answers. Respond directly to the user's latest words before asking one gentle question.
 
 Here are examples of how you should respond:
 {examples}
@@ -58,8 +60,8 @@ Here are examples of how you should respond:
             return ""
 
     @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
+        stop=stop_after_attempt(1),
+        wait=wait_exponential(multiplier=1, min=1, max=1),
         retry=retry_if_exception_type((openai.APITimeoutError, openai.APIError, openai.RateLimitError))
     )
     async def generate(self, user_message: str, context: str, emotion: dict, safety: dict) -> str:
@@ -80,9 +82,10 @@ Here are examples of how you should respond:
         response = await self.client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             messages=messages,
-            temperature=0.6,
+            temperature=0.85,
             max_tokens=300,
-            presence_penalty=0.2,
+            presence_penalty=0.45,
+            frequency_penalty=0.25,
             stream=False
         )
         return response.choices[0].message.content
@@ -102,7 +105,7 @@ Here are examples of how you should respond:
         stream = await self.client.chat.completions.create(
             model=os.getenv("OPENAI_MODEL", "gpt-3.5-turbo"),
             messages=messages,
-            temperature=0.6,
+            temperature=0.85,
             max_tokens=300,
             stream=True
         )

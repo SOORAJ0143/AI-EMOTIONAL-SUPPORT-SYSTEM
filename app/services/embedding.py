@@ -2,7 +2,7 @@
 import openai
 from app.config import settings
 
-client = openai.AsyncOpenAI()
+client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
 
 
 async def get_embedding(text: str) -> list:
@@ -11,3 +11,8 @@ async def get_embedding(text: str) -> list:
         input=text
     )
     return response.data[0].embedding
+
+
+async def close_embedding_client() -> None:
+    """Close HTTP connections before the asyncio event loop shuts down."""
+    await client.close()
