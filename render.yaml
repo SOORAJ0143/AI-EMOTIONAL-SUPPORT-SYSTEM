@@ -2,7 +2,7 @@ services:
   - type: web
     name: hopemo-api
     runtime: python
-    plan: pro
+    plan: starter
     buildCommand: pip install -r requirements.txt
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /api/v1/health
