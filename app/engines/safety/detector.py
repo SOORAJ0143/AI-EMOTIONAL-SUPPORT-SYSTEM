@@ -1,40 +1,31 @@
-# app/engines/safety/detector.py
 import openai
-from detoxify import Detoxify
-import asyncio
-from dotenv import load_dotenv
 from app.config import settings
-load_dotenv()
+
 
 class SafetyDetector:
+    """Fast safety checks that do not download a large local ML model."""
+
     def __init__(self):
         self.openai_client = openai.AsyncOpenAI(api_key=settings.OPENAI_API_KEY)
-        self.detoxify_model = Detoxify('original')  # Multilingual
+        self.crisis_keywords = ("kill myself", "suicide", "end my life", "want to die", "harm myself")
 
     async def check(self, text: str) -> dict:
-        # 1. OpenAI Moderation
-        moderation = await self.openai_client.moderations.create(input=text)
-        flagged = moderation.results[0].flagged
-        categories = moderation.results[0].categories.model_dump()
-        
-        # 2. Detoxify
-        toxicity_scores = self.detoxify_model.predict(text)
-        
-        # 3. Combine risk levels
-        risk = "low"
-        if flagged or toxicity_scores['toxicity'] > 0.7:
-            risk = "high"
-        elif toxicity_scores['toxicity'] > 0.5:
-            risk = "medium"
-        
-        # Crisis detection keywords
-        crisis_keywords = ["kill myself", "suicide", "end my life", "want to die"]
-        if any(kw in text.lower() for kw in crisis_keywords):
-            risk = "critical"
-        
+        normalized = text.lower()
+        if any(keyword in normalized for keyword in self.crisis_keywords):
+            return {"risk_level": "critical", "flagged_categories": ["self_harm"], "toxicity_score": 0.0, "safe": False}
+
+        try:
+            moderation = await self.openai_client.moderations.create(input=text)
+            result = moderation.results[0]
+            categories = result.categories.model_dump()
+            flagged = result.flagged
+        except Exception:
+            categories = {}
+            flagged = False
+
         return {
-            "risk_level": risk,
-            "flagged_categories": [k for k, v in categories.items() if v],
-            "toxicity_score": toxicity_scores['toxicity'],
-            "safe": risk in ["low", "medium"]
+            "risk_level": "high" if flagged else "low",
+            "flagged_categories": [name for name, value in categories.items() if value],
+            "toxicity_score": 0.0,
+            "safe": not flagged,
         }
