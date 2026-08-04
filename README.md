@@ -1,0 +1,2 @@
+Emotional Intelligence & Mental Wellness Assistant
+HOPEMO AI is an AI-powered emotional intelligence platform designed to provide empathetic conversations, emotional support, and mental wellness guidance through a modern and intuitive web interface. The platform combines advanced Natural Language Processing (NLP), emotion detection, and AI-generated responses to create meaningful and supportive interactions.
