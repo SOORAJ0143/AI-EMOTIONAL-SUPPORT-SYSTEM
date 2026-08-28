@@ -8,6 +8,8 @@ from email.message import EmailMessage
 from fastapi import APIRouter, HTTPException, status
 from pydantic import BaseModel, EmailStr, Field
 from pymongo.errors import DuplicateKeyError
+from google.auth.transport import requests as google_requests
+from google.oauth2 import id_token
 
 from app.auth import create_access_token, hash_password, verify_password
 from app.config import settings
@@ -36,6 +38,10 @@ class EmailRequest(BaseModel):
     email: EmailStr
 
 
+class GoogleLoginRequest(BaseModel):
+    credential: str = Field(min_length=20, max_length=10000)
+
+
 class UserResponse(BaseModel):
     id: str
     name: str
@@ -43,9 +49,12 @@ class UserResponse(BaseModel):
 
 
 class AuthResponse(BaseModel):
-    access_token: str
-    token_type: str
-    user: UserResponse
+    access_token: str | None = None
+    token_type: str | None = None
+    user: UserResponse | None = None
+    verification_required: bool = False
+    email: EmailStr | None = None
+    message: str | None = None
 
 
 class OtpSentResponse(BaseModel):
@@ -83,12 +92,13 @@ async def _issue_otp(user: dict) -> None:
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
 async def register(request: RegisterRequest):
-    user = {"_id": str(uuid.uuid4()), "name": request.name.strip(), "email": request.email.lower().strip(), "hashed_password": hash_password(request.password), "verified": True, "created_at": datetime.now(timezone.utc)}
+    user = {"_id": str(uuid.uuid4()), "name": request.name.strip(), "email": request.email.lower().strip(), "hashed_password": hash_password(request.password), "verified": False, "auth_provider": "password", "created_at": datetime.now(timezone.utc)}
     try:
         await users.insert_one(user)
     except DuplicateKeyError:
         raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail="An account already exists for this email address.")
-    return {"access_token": create_access_token(user["_id"]), "token_type": "bearer", "user": {"id": user["_id"], "name": user["name"], "email": user["email"]}}
+    await _issue_otp(user)
+    return {"verification_required": True, "email": user["email"], "message": "We sent a six-digit verification code to your email address."}
 
 
 @router.post("/verify-email", response_model=AuthResponse)
@@ -117,6 +127,30 @@ async def resend_verification(request: EmailRequest):
 @router.post("/login", response_model=AuthResponse)
 async def login(request: LoginRequest):
     user = await users.find_one({"email": request.email.lower().strip()})
-    if not user or not verify_password(request.password, user["hashed_password"]):
+    if not user or not user.get("hashed_password") or not verify_password(request.password, user["hashed_password"]):
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Incorrect email or password.")
+    if not user.get("verified"):
+        await _issue_otp(user)
+        return {"verification_required": True, "email": user["email"], "message": "Verify your email to sign in. A new code has been sent."}
+    return {"access_token": create_access_token(user["_id"]), "token_type": "bearer", "user": {"id": user["_id"], "name": user["name"], "email": user["email"]}}
+
+
+@router.post("/google", response_model=AuthResponse)
+async def google_login(request: GoogleLoginRequest):
+    if not settings.GOOGLE_CLIENT_ID:
+        raise HTTPException(status_code=503, detail="Google Sign-In is not configured yet.")
+    try:
+        info = await asyncio.to_thread(id_token.verify_oauth2_token, request.credential, google_requests.Request(), settings.GOOGLE_CLIENT_ID)
+    except Exception:
+        raise HTTPException(status_code=401, detail="Google could not verify this sign-in. Please try again.")
+    email = str(info.get("email", "")).lower().strip()
+    google_id = str(info.get("sub", ""))
+    if not email or not google_id or not info.get("email_verified"):
+        raise HTTPException(status_code=401, detail="Your Google account email could not be verified.")
+    user = await users.find_one({"google_id": google_id}) or await users.find_one({"email": email})
+    if not user:
+        user = {"_id": str(uuid.uuid4()), "name": str(info.get("name") or email.split("@")[0])[:80], "email": email, "google_id": google_id, "verified": True, "auth_provider": "google", "created_at": datetime.now(timezone.utc)}
+        await users.insert_one(user)
+    elif not user.get("google_id"):
+        await users.update_one({"_id": user["_id"]}, {"$set": {"google_id": google_id, "verified": True, "auth_provider": user.get("auth_provider", "password")}})
     return {"access_token": create_access_token(user["_id"]), "token_type": "bearer", "user": {"id": user["_id"], "name": user["name"], "email": user["email"]}}

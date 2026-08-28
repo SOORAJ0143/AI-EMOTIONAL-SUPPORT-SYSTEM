@@ -4,7 +4,7 @@ import {
   Heart, Leaf, LogOut, Menu, MessageCircleMore, Mic, Paperclip, Search,
   Send, Smile, Sparkles, Wind, X,
 } from "lucide-react";
-import { authenticate, deleteConversation, getConversationInsights, getConversationMessages, getConversations, getEmotionTrends, isTokenExpired, isUnauthorizedError, sendChatMessage } from "./api";
+import { authenticate, deleteConversation, getConversationInsights, getConversationMessages, getConversations, getEmotionTrends, isTokenExpired, isUnauthorizedError, resendVerification, sendChatMessage, signInWithGoogle, verifyEmail } from "./api";
 import StudentSuccess from "./StudentSuccess";
 
 const remoteAssets = {
@@ -16,32 +16,20 @@ const remoteAssets = {
   meadowDecoration: "https://framerusercontent.com/images/OH5Re0X1fnTabOLoEQYYNvYZWdQ.png?width=1960&height=767",
 };
 
+function GoogleButton({ onCredential, onError }) {
+  const buttonRef = useRef(null); const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+  useEffect(() => { if (!clientId || !buttonRef.current) return; const render = () => { if (!window.google?.accounts?.id) return; window.google.accounts.id.initialize({ client_id: clientId, callback: (response) => onCredential(response.credential) }); window.google.accounts.id.renderButton(buttonRef.current, { theme: "outline", size: "large", width: 320, text: "continue_with" }); }; if (window.google?.accounts?.id) render(); else { const script = document.createElement("script"); script.src = "https://accounts.google.com/gsi/client"; script.async = true; script.onload = render; script.onerror = () => onError("Google Sign-In could not load. Please try email instead."); document.head.appendChild(script); } }, [clientId]);
+  return clientId ? <><div className="auth-divider"><span>or</span></div><div className="google-signin" ref={buttonRef} /></> : null;
+}
+
 function AuthModal({ onSuccess, onClose }) {
-  const [mode, setMode] = useState("login");
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  async function submit(event) {
-    event.preventDefault(); setError(""); setLoading(true);
-    try {
-      const result = await authenticate(mode, mode === "login" ? { email, password } : { name, email, password });
-      onSuccess(result);
-    }
-    catch (err) { setError(err.message); } finally { setLoading(false); }
-  }
-  return <div className="auth-overlay"><section className="auth-modal" role="dialog" aria-modal="true">
-    <button className="icon-button modal-close" onClick={onClose} aria-label="Close"><X /></button>
-    <span className="modal-leaf"><Leaf /></span><h2>{mode === "login" ? "Welcome back" : "Create your space"}</h2>
-    <p>{mode === "login" ? "Sign in to continue your conversations." : "A gentle place to reflect, one message at a time."}</p>
-    <form onSubmit={submit}>
-      {mode === "register" && <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" minLength="2" required />}
-      <input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email address" required />
-      <input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password (minimum 8 characters)" minLength="8" required />
-      {error && <p className="auth-error">{error}</p>}<button className="dark-pill" disabled={loading}>{loading ? "Please wait..." : mode === "login" ? "Sign in" : "Create account"}<ArrowRight /></button>
-    </form><button className="text-button" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "New here? Create an account" : "Already have an account? Sign in"}</button>
-  </section></div>;
+  const [mode, setMode] = useState("login"); const [name, setName] = useState(""); const [email, setEmail] = useState(""); const [password, setPassword] = useState(""); const [code, setCode] = useState(""); const [error, setError] = useState(""); const [notice, setNotice] = useState(""); const [loading, setLoading] = useState(false);
+  const finish = (result) => { if (result.verification_required) { setEmail(result.email || email); setMode("verify"); setNotice(result.message || "We sent a verification code to your email."); return; } onSuccess(result); };
+  async function submit(event) { event.preventDefault(); setError(""); setLoading(true); try { if (mode === "verify") finish(await verifyEmail(email, code)); else finish(await authenticate(mode, mode === "login" ? { email, password } : { name, email, password })); } catch (err) { setError(err.message); } finally { setLoading(false); } }
+  async function google(credential) { setError(""); setLoading(true); try { finish(await signInWithGoogle(credential)); } catch (err) { setError(err.message); } finally { setLoading(false); } }
+  async function resend() { setError(""); setLoading(true); try { const result = await resendVerification(email); setNotice(result.message); } catch (err) { setError(err.message); } finally { setLoading(false); } }
+  const verifying = mode === "verify";
+  return <div className="auth-overlay"><section className="auth-modal" role="dialog" aria-modal="true"><button className="icon-button modal-close" onClick={onClose} aria-label="Close"><X /></button><span className="modal-leaf"><Leaf /></span><h2>{verifying ? "Check your email" : mode === "login" ? "Welcome back" : "Create your space"}</h2><p>{verifying ? `Enter the six-digit code sent to ${email}.` : mode === "login" ? "Sign in to continue your conversations." : "A gentle place to reflect, one message at a time."}</p><form onSubmit={submit}>{mode === "register" && <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Your name" minLength="2" required />}{!verifying && <><input value={email} onChange={(e) => setEmail(e.target.value)} type="email" placeholder="Email address" required /><input value={password} onChange={(e) => setPassword(e.target.value)} type="password" placeholder="Password (minimum 8 characters)" minLength="8" required /></>}{verifying && <input className="otp-input" value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" autoComplete="one-time-code" placeholder="000000" minLength="6" maxLength="6" required />}{notice && <p className="auth-notice">{notice}</p>}{error && <p className="auth-error">{error}</p>}<button className="dark-pill" disabled={loading}>{loading ? "Please wait..." : verifying ? "Verify email" : mode === "login" ? "Sign in" : "Create account"}<ArrowRight /></button></form>{!verifying && <GoogleButton onCredential={google} onError={setError} />}{verifying ? <button className="text-button" disabled={loading} onClick={resend}>Resend verification code</button> : <button className="text-button" onClick={() => setMode(mode === "login" ? "register" : "login")}>{mode === "login" ? "New here? Create an account" : "Already have an account? Sign in"}</button>}</section></div>;
 }
 
 function ChatScreen({ user, logout, onHome, onSignIn, onSessionExpired, studentCoach = false, onStudentSuccess }) {

@@ -43,6 +43,7 @@ async function authPost(endpoint, payload) {
 
 export const verifyEmail = (email, code) => authPost("verify-email", { email, code });
 export const resendVerification = (email) => authPost("resend-verification", { email });
+export const signInWithGoogle = (credential) => authPost("google", { credential });
 
 export async function sendChatMessage(token, payload) {
   const controller = new AbortController();

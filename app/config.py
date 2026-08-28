@@ -28,6 +28,7 @@ class Settings(BaseSettings):
     SMTP_FROM_EMAIL: Optional[str] = None
     SMTP_USE_TLS: bool = True
     OTP_EXPIRE_MINUTES: int = 10
+    GOOGLE_CLIENT_ID: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",
