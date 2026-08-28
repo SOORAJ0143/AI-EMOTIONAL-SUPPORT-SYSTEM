@@ -85,3 +85,17 @@ export async function deleteConversation(token, id) {
   if (!response.ok) throw apiError(response, data, "Unable to delete conversation.");
   return data;
 }
+
+async function authorizedRequest(token, path, method, payload) {
+  const response = await fetch(`${API_URL}${path}`, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: payload ? JSON.stringify(payload) : undefined });
+  const data = await response.json();
+  if (!response.ok) throw apiError(response, data, "Unable to save your Student Success data.");
+  return data;
+}
+
+export const getStudentOverview = (token) => authorizedGet(token, "/api/v1/student/overview");
+export const saveStudentProfile = (token, payload) => authorizedRequest(token, "/api/v1/student/profile", "PUT", payload);
+export const saveStudentAssessment = (token, payload) => authorizedRequest(token, "/api/v1/student/assessment", "POST", payload);
+export const createRoadmap = (token) => authorizedRequest(token, "/api/v1/student/roadmap", "POST");
+export const updateStudentTask = (token, id, completed) => authorizedRequest(token, `/api/v1/student/tasks/${id}`, "PATCH", { completed });
+export const saveStudentCheckin = (token, payload) => authorizedRequest(token, "/api/v1/student/checkin", "POST", payload);

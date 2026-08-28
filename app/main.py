@@ -13,6 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.api.auth import router as auth_router
+from app.api.student import router as student_router
 from app.auth import get_current_user
 from app.config import settings
 from app.engines.analytics.tracker import AnalyticsTracker
@@ -23,7 +24,7 @@ from app.engines.rag.retriever import RAGRetriever, VectorStore
 from app.engines.response.generator import ResponseGenerator
 from app.engines.response.validator import ResponseValidator
 from app.engines.safety.detector import SafetyDetector
-from app.models.mongo import close_mongodb_connection, connect_to_mongodb, conversations, emotional_analytics, messages
+from app.models.mongo import close_mongodb_connection, connect_to_mongodb, conversations, emotional_analytics, messages, student_assessments, student_profiles, student_tasks
 from app.services.embedding import get_embedding
 from app.utils.helpers import convert_numpy
 
@@ -60,6 +61,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router)
+app.include_router(student_router)
 
 
 @app.exception_handler(openai.AuthenticationError)
@@ -87,6 +89,7 @@ async def generic_exception_handler(request, exc):
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=4000)
     conversation_id: Optional[str] = None
+    student_coach: bool = False
 
 
 class ChatResponse(BaseModel):
@@ -131,6 +134,12 @@ async def chat(req: ChatRequest, current_user: dict = Depends(get_current_user))
         retrieval = await asyncio.wait_for(rag_retriever.retrieve(req.message, user_id), timeout=3)
         reranked = reranker.rank(req.message, retrieval["memories"] + retrieval["knowledge"])
         context = context_merger.merge(req.message, reranked, retrieval["associative"])
+        if req.student_coach:
+            profile = await student_profiles.find_one({"user_id": user_id}, {"_id": 0, "course": 1, "semester": 1, "subjects": 1, "study_hours": 1})
+            assessment = await student_assessments.find_one({"user_id": user_id}, {"_id": 0, "difficult_topics": 1, "learning_style": 1, "scores": 1})
+            from datetime import date
+            today_tasks = [task["title"] async for task in student_tasks.find({"user_id": user_id, "date": date.today().isoformat(), "completed": False}, {"title": 1})]
+            context += "\n\nStudent Coach context (use only when helpful; keep wellbeing support non-diagnostic): " + json.dumps({"profile": profile, "assessment": assessment, "today_tasks": today_tasks})
         response_text = await asyncio.wait_for(response_generator.generate(req.message, context, emotion, safety), timeout=6)
     except Exception:
         logger.exception("AI response path failed; using fast fallback")
