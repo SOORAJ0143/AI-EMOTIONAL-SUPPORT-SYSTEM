@@ -66,6 +66,15 @@ def _otp() -> str:
     return f"{secrets.randbelow(1_000_000):06d}"
 
 
+def _is_expired(expires: datetime | None) -> bool:
+    """Treat MongoDB's timezone-naive UTC datetimes as UTC."""
+    if not expires:
+        return True
+    if expires.tzinfo is None:
+        expires = expires.replace(tzinfo=timezone.utc)
+    return expires < datetime.now(timezone.utc)
+
+
 def _send_otp(email: str, code: str) -> None:
     if not all((settings.SMTP_HOST, settings.SMTP_USERNAME, settings.SMTP_PASSWORD, settings.SMTP_FROM_EMAIL)):
         raise RuntimeError("Email verification is not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, and SMTP_FROM_EMAIL.")
@@ -107,7 +116,7 @@ async def verify_email(request: VerifyEmailRequest):
     if not user or user.get("verified"):
         raise HTTPException(status_code=400, detail="This verification request is no longer valid.")
     expires = user.get("verification_expires_at")
-    if not expires or expires < datetime.now(timezone.utc) or not secrets.compare_digest(str(user.get("verification_code", "")), request.code):
+    if _is_expired(expires) or not secrets.compare_digest(str(user.get("verification_code", "")), request.code):
         raise HTTPException(status_code=400, detail="That verification code is invalid or expired.")
     await users.update_one({"_id": user["_id"]}, {"$set": {"verified": True, "verified_at": datetime.now(timezone.utc)}, "$unset": {"verification_code": "", "verification_expires_at": ""}})
     return {"access_token": create_access_token(user["_id"]), "token_type": "bearer", "user": {"id": user["_id"], "name": user["name"], "email": user["email"]}}
