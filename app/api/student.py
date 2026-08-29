@@ -102,6 +102,11 @@ async def create_roadmap(current_user: dict = Depends(get_current_user)):
     today = date.today()
     exam_date = profile.get("exam_date") or today + timedelta(days=28)
     if isinstance(exam_date, datetime): exam_date = exam_date.date()
+    elif isinstance(exam_date, str):
+        try:
+            exam_date = date.fromisoformat(exam_date)
+        except ValueError:
+            exam_date = today + timedelta(days=28)
     days = max(7, (exam_date - today).days)
     await student_tasks.delete_many({"user_id": current_user["_id"], "source": "roadmap"})
     tasks = []
