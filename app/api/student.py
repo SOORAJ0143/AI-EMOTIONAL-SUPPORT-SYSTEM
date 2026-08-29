@@ -77,7 +77,8 @@ async def _profile(user_id: str) -> dict:
 @router.put("/profile")
 async def save_profile(request: StudentProfileRequest, current_user: dict = Depends(get_current_user)):
     now = datetime.now(timezone.utc)
-    document = request.model_dump()
+    # JSON mode converts the browser's exam date into a MongoDB-safe ISO string.
+    document = request.model_dump(mode="json")
     document["subjects"] = [subject.strip() for subject in document["subjects"] if subject.strip()]
     await student_profiles.update_one({"user_id": current_user["_id"]}, {"$set": {**document, "user_id": current_user["_id"], "updated_at": now}, "$setOnInsert": {"created_at": now}}, upsert=True)
     return {**document, "configured": True}
