@@ -42,6 +42,16 @@ class GoogleLoginRequest(BaseModel):
     credential: str = Field(min_length=20, max_length=10000)
 
 
+class ResetPasswordRequest(BaseModel):
+    email: EmailStr
+
+
+class ConfirmPasswordResetRequest(BaseModel):
+    email: EmailStr
+    code: str = Field(min_length=6, max_length=6)
+    password: str = Field(min_length=8, max_length=128)
+
+
 class UserResponse(BaseModel):
     id: str
     name: str
@@ -75,11 +85,11 @@ def _is_expired(expires: datetime | None) -> bool:
     return expires < datetime.now(timezone.utc)
 
 
-def _send_otp(email: str, code: str) -> None:
+def _send_otp(email: str, code: str, subject: str = "Your HOPEMO verification code") -> None:
     if not all((settings.SMTP_HOST, settings.SMTP_USERNAME, settings.SMTP_PASSWORD, settings.SMTP_FROM_EMAIL)):
         raise RuntimeError("Email verification is not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, and SMTP_FROM_EMAIL.")
     message = EmailMessage()
-    message["Subject"] = "Your HOPEMO verification code"
+    message["Subject"] = subject
     message["From"] = settings.SMTP_FROM_EMAIL
     message["To"] = email
     message.set_content(f"Your HOPEMO verification code is {code}. It expires in {settings.OTP_EXPIRE_MINUTES} minutes. Do not share this code.")
@@ -90,11 +100,13 @@ def _send_otp(email: str, code: str) -> None:
         server.send_message(message)
 
 
-async def _issue_otp(user: dict) -> None:
+async def _issue_otp(user: dict, purpose: str = "verification") -> None:
     code = _otp()
-    await users.update_one({"_id": user["_id"]}, {"$set": {"verification_code": code, "verification_expires_at": datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)}})
+    prefix = "password_reset" if purpose == "password_reset" else "verification"
+    await users.update_one({"_id": user["_id"]}, {"$set": {f"{prefix}_code": code, f"{prefix}_expires_at": datetime.now(timezone.utc) + timedelta(minutes=settings.OTP_EXPIRE_MINUTES)}})
     try:
-        await asyncio.to_thread(_send_otp, user["email"], code)
+        subject = "Your HOPEMO password reset code" if purpose == "password_reset" else "Your HOPEMO verification code"
+        await asyncio.to_thread(_send_otp, user["email"], code, subject)
     except Exception as exc:
         raise HTTPException(status_code=503, detail=str(exc))
 
@@ -141,6 +153,26 @@ async def login(request: LoginRequest):
     if not user.get("verified"):
         await _issue_otp(user)
         return {"verification_required": True, "email": user["email"], "message": "Verify your email to sign in. A new code has been sent."}
+    return {"access_token": create_access_token(user["_id"]), "token_type": "bearer", "user": {"id": user["_id"], "name": user["name"], "email": user["email"]}}
+
+
+@router.post("/forgot-password", response_model=OtpSentResponse)
+async def forgot_password(request: ResetPasswordRequest):
+    user = await users.find_one({"email": request.email.lower().strip()})
+    # Preserve account privacy: callers always receive the same response.
+    if user and user.get("hashed_password"):
+        await _issue_otp(user, "password_reset")
+    return {"message": "If an account uses password sign-in for this email, a reset code has been sent.", "email": request.email}
+
+
+@router.post("/reset-password", response_model=AuthResponse)
+async def reset_password(request: ConfirmPasswordResetRequest):
+    user = await users.find_one({"email": request.email.lower().strip()})
+    if not user or not user.get("hashed_password"):
+        raise HTTPException(status_code=400, detail="This account uses Google Sign-In or the reset request is invalid.")
+    if _is_expired(user.get("password_reset_expires_at")) or not secrets.compare_digest(str(user.get("password_reset_code", "")), request.code):
+        raise HTTPException(status_code=400, detail="That reset code is invalid or expired.")
+    await users.update_one({"_id": user["_id"]}, {"$set": {"hashed_password": hash_password(request.password), "password_changed_at": datetime.now(timezone.utc)}, "$unset": {"password_reset_code": "", "password_reset_expires_at": ""}})
     return {"access_token": create_access_token(user["_id"]), "token_type": "bearer", "user": {"id": user["_id"], "name": user["name"], "email": user["email"]}}
 
 

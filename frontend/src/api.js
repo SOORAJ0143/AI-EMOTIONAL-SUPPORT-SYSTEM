@@ -1,9 +1,15 @@
-const API_URL = import.meta.env.VITE_API_URL;
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 function apiError(response, data, fallback) {
   const error = new Error(data.detail || fallback);
   error.status = response.status;
   return error;
+}
+
+async function readJson(response, fallback) {
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw apiError(response, data, fallback);
+  return data;
 }
 
 export function isUnauthorizedError(error) {
@@ -27,23 +33,21 @@ export async function authenticate(mode, payload) {
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),
   });
-  const data = await response.json();
-  if (!response.ok) throw apiError(response, data, "Authentication failed.");
-  return data;
+  return readJson(response, "Authentication failed.");
 }
 
 async function authPost(endpoint, payload) {
   const response = await fetch(`${API_URL}/api/v1/auth/${endpoint}`, {
     method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });
-  const data = await response.json();
-  if (!response.ok) throw apiError(response, data, "Unable to complete that request.");
-  return data;
+  return readJson(response, "Unable to complete that request.");
 }
 
 export const verifyEmail = (email, code) => authPost("verify-email", { email, code });
 export const resendVerification = (email) => authPost("resend-verification", { email });
 export const signInWithGoogle = (credential) => authPost("google", { credential });
+export const requestPasswordReset = (email) => authPost("forgot-password", { email });
+export const resetPassword = (email, code, password) => authPost("reset-password", { email, code, password });
 
 export async function sendChatMessage(token, payload) {
   const controller = new AbortController();
@@ -55,9 +59,7 @@ export async function sendChatMessage(token, payload) {
       body: JSON.stringify(payload),
       signal: controller.signal,
     });
-    const data = await response.json();
-    if (!response.ok) throw apiError(response, data, "Unable to send message.");
-    return data;
+    return await readJson(response, "Unable to send message.");
   } catch (error) {
     if (error.name === "AbortError") throw new Error("The reply took too long. Please try again.");
     throw error;
@@ -68,9 +70,7 @@ export async function sendChatMessage(token, payload) {
 
 async function authorizedGet(token, path) {
   const response = await fetch(`${API_URL}${path}`, { headers: { Authorization: `Bearer ${token}` } });
-  const data = await response.json();
-  if (!response.ok) throw apiError(response, data, "Unable to load your saved data.");
-  return data;
+  return readJson(response, "Unable to load your saved data.");
 }
 
 export const getConversations = (token) => authorizedGet(token, "/api/v1/conversations");
@@ -82,16 +82,13 @@ export async function deleteConversation(token, id) {
     method: "DELETE",
     headers: { Authorization: `Bearer ${token}` },
   });
-  const data = await response.json();
-  if (!response.ok) throw apiError(response, data, "Unable to delete conversation.");
-  return data;
+  return readJson(response, "Unable to delete conversation.");
 }
 
 async function authorizedRequest(token, path, method, payload) {
   const response = await fetch(`${API_URL}${path}`, { method, headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: payload ? JSON.stringify(payload) : undefined });
-  const data = await response.json();
-  if (!response.ok) throw apiError(response, data, "Unable to save your Student Success data.");
-  return data;
+  try { return await readJson(response, "Unable to save your Student Success data."); }
+  catch (error) { throw error; }
 }
 
 export const getStudentOverview = (token) => authorizedGet(token, "/api/v1/student/overview");
@@ -100,3 +97,4 @@ export const saveStudentAssessment = (token, payload) => authorizedRequest(token
 export const createRoadmap = (token) => authorizedRequest(token, "/api/v1/student/roadmap", "POST");
 export const updateStudentTask = (token, id, completed) => authorizedRequest(token, `/api/v1/student/tasks/${id}`, "PATCH", { completed });
 export const saveStudentCheckin = (token, payload) => authorizedRequest(token, "/api/v1/student/checkin", "POST", payload);
+export const getStudentTools = (token) => authorizedGet(token, "/api/v1/student/study-tools");
