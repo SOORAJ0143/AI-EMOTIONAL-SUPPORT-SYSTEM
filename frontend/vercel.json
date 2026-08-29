@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "https://hopemo-ai.onrender.com/api/:path*"
+    }
+  ]
+}

@@ -1,4 +1,6 @@
-const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+// In production, requests go through Vercel's same-site rewrite. This avoids
+// browser cross-origin failures between the public site and the Render API.
+const API_URL = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 function apiError(response, data, fallback) {
   const error = new Error(data.detail || fallback);
