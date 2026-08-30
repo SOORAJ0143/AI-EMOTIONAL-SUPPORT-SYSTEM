@@ -55,7 +55,7 @@ class TaskPatch(BaseModel):
     completed: bool | None = None
     actual_minutes: int | None = Field(default=None, ge=0, le=1440)
     status: Literal["not_started", "in_progress", "completed"] | None = None
-    date: date | None = None
+    scheduled_date: date | None = None
     priority: Literal["low", "medium", "high"] | None = None
     title: str | None = Field(default=None, min_length=3, max_length=500)
 
@@ -227,7 +227,7 @@ async def update_task(task_id: str, request: TaskPatch, current_user: dict = Dep
     elif request.status is not None:
         update["status"] = request.status
         update["completed"] = request.status == "completed"
-    if request.date is not None: update["date"] = request.date.isoformat()
+    if request.scheduled_date is not None: update["date"] = request.scheduled_date.isoformat()
     if request.priority is not None: update["priority"] = request.priority
     if request.title is not None: update["title"] = request.title.strip()
     if request.actual_minutes is not None:
