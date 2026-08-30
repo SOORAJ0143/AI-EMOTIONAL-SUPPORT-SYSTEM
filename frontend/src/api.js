@@ -110,6 +110,8 @@ export const getStudentOverview = (token) => authorizedGet(token, "/api/v1/stude
 export const saveStudentProfile = (token, payload) => authorizedRequest(token, "/api/v1/student/profile", "PUT", payload);
 export const saveStudentAssessment = (token, payload) => authorizedRequest(token, "/api/v1/student/assessment", "POST", payload);
 export const createRoadmap = (token) => authorizedRequest(token, "/api/v1/student/roadmap", "POST");
-export const updateStudentTask = (token, id, completed) => authorizedRequest(token, `/api/v1/student/tasks/${id}`, "PATCH", { completed });
+export const previewStudentTask = (token, payload) => authorizedRequest(token, "/api/v1/student/tasks/preview", "POST", payload);
+export const createStudentTask = (token, payload) => authorizedRequest(token, "/api/v1/student/tasks", "POST", payload);
+export const updateStudentTask = (token, id, completedOrPayload) => authorizedRequest(token, `/api/v1/student/tasks/${id}`, "PATCH", typeof completedOrPayload === "boolean" ? { completed: completedOrPayload } : completedOrPayload);
 export const saveStudentCheckin = (token, payload) => authorizedRequest(token, "/api/v1/student/checkin", "POST", payload);
 export const getStudentTools = (token) => authorizedGet(token, "/api/v1/student/study-tools");

@@ -1,6 +1,7 @@
 """Student Success APIs. Scores are transparent guidance, never diagnoses or grade guarantees."""
 from datetime import date, datetime, timedelta, timezone
 from typing import Literal
+import re
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -51,7 +52,20 @@ class CheckinRequest(BaseModel):
 
 
 class TaskPatch(BaseModel):
-    completed: bool
+    completed: bool | None = None
+    actual_minutes: int | None = Field(default=None, ge=0, le=1440)
+    status: Literal["not_started", "in_progress", "completed"] | None = None
+    date: date | None = None
+    priority: Literal["low", "medium", "high"] | None = None
+    title: str | None = Field(default=None, min_length=3, max_length=500)
+
+
+class TaskCreateRequest(BaseModel):
+    description: str = Field(min_length=3, max_length=500)
+    deadline: date | None = None
+    recurrence: Literal["none", "daily", "weekly"] = "none"
+    subject: str = Field(default="", max_length=100)
+    confirm_schedule: bool = True
 
 
 def _score(value: float) -> int:
@@ -65,6 +79,27 @@ def calculate_scores(item: AssessmentRequest) -> dict:
     productivity = _score((item.time_management + (6 - item.procrastination) + item.revision_frequency) / 15 * 100)
     exam_readiness = _score(readiness * .65 + productivity * .2 + wellness * .15)
     return {"academic_readiness": readiness, "focus": _score(item.focus / 5 * 100), "wellness": wellness, "time_management": _score(item.time_management / 5 * 100), "productivity": productivity, "exam_readiness": exam_readiness, "stress_level": "high" if item.stress >= 4 else "medium" if item.stress == 3 else "low"}
+
+
+def understand_task(description: str, deadline: date | None, recurrence: str) -> dict:
+    """A transparent first-pass planner for naturally written student tasks."""
+    text = description.lower()
+    duration_match = re.search(r"\b(\d+(?:\.5)?)\s*(minutes?|mins?|hours?|hrs?|hr|h)\b", text)
+    minutes = 45
+    if duration_match:
+        amount = float(duration_match.group(1))
+        minutes = round(amount * 60) if duration_match.group(2).startswith(("h", "hr")) else round(amount)
+    minutes = max(15, min(minutes, 480))
+    difficulty = "high" if any(word in text for word in ("hard", "difficult", "challenging", "complex")) else "low" if any(word in text for word in ("easy", "quick", "simple")) else "medium"
+    priority = "high" if any(word in text for word in ("urgent", "asap", "important", "exam", "submit", "deadline")) else "medium"
+    if "daily" in text: recurrence = "daily"
+    elif "weekly" in text or "every week" in text: recurrence = "weekly"
+    today = date.today()
+    if not deadline and "tomorrow" in text: deadline = today + timedelta(days=1)
+    elif not deadline and "today" in text: deadline = today
+    if deadline and deadline <= today + timedelta(days=1): priority = "high"
+    scheduled_for = today if priority == "high" or not deadline else min(deadline - timedelta(days=1), today + timedelta(days=2))
+    return {"minutes": minutes, "difficulty": difficulty, "priority": priority, "deadline": deadline.isoformat() if deadline else None, "recurrence": recurrence, "date": scheduled_for.isoformat()}
 
 
 async def _profile(user_id: str) -> dict:
@@ -131,10 +166,22 @@ async def overview(current_user: dict = Depends(get_current_user)):
     profile = await student_profiles.find_one({"user_id": user_id}, {"_id": 0})
     assessment = await student_assessments.find_one({"user_id": user_id}, {"_id": 0})
     today = date.today().isoformat()
-    tasks = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id, "date": today}, {"_id": 1, "title": 1, "kind": 1, "minutes": 1, "completed": 1, "date": 1, "week": 1})]
+    task_fields = {"_id": 1, "title": 1, "subject": 1, "kind": 1, "minutes": 1, "actual_minutes": 1, "completed": 1, "status": 1, "date": 1, "week": 1, "priority": 1, "difficulty": 1, "deadline": 1, "recurrence": 1, "subtasks": 1, "source": 1}
+    tasks = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id, "date": today}, task_fields).sort("priority", -1)]
     roadmap = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id, "source": "roadmap"}, {"_id": 1, "title": 1, "kind": 1, "minutes": 1, "completed": 1, "date": 1, "week": 1}).sort("date", 1)]
     checkin = await student_checkins.find_one({"user_id": user_id, "date": today}, {"_id": 0, "mood": 1, "note": 1})
-    return {"profile": profile, "assessment": assessment, "tasks": tasks, "roadmap": roadmap, "checkin": checkin}
+    overdue = [task async for task in student_tasks.find({"user_id": user_id, "completed": False, "date": {"$lt": today}}, {"title": 1, "date": 1, "deadline": 1})]
+    due_soon = [task async for task in student_tasks.find({"user_id": user_id, "completed": False, "deadline": {"$in": [today, (date.today() + timedelta(days=1)).isoformat()]}}, {"title": 1, "deadline": 1})]
+    notifications = ([f"{task['title']} needs attention: it was scheduled for {task['date']}." for task in overdue[:2]] + [f"{task['title']} is due {task['deadline']}." for task in due_soon[:2]])
+    all_tasks = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id}, task_fields).sort("date", 1)]
+    completed = [task for task in all_tasks if task.get("completed")]
+    recurring = [task for task in all_tasks if task.get("recurrence") and task["recurrence"] != "none"]
+    task_views = {"do_now": [task for task in all_tasks if not task.get("completed") and task.get("priority") == "high" and task.get("date", today) <= today], "today": tasks, "upcoming": [task for task in all_tasks if not task.get("completed") and task.get("date", today) > today], "overdue": [task for task in all_tasks if not task.get("completed") and task.get("date", today) < today], "completed": completed}
+    consistency = f"{sum(1 for task in recurring if task.get('completed'))}/{len(recurring)} recurring tasks completed" if recurring else "Add a recurring task to begin consistency tracking."
+    if tasks and not notifications:
+        minutes_left = sum(task.get("minutes", 0) for task in tasks if not task.get("completed"))
+        notifications.append(f"You have about {minutes_left} minutes planned today. Start the highest-priority task first.")
+    return {"profile": profile, "assessment": assessment, "tasks": tasks, "task_views": task_views, "roadmap": roadmap, "checkin": checkin, "notifications": notifications, "task_insights": {"recurring_consistency": consistency, "completed_count": len(completed), "planned_minutes": sum(task.get("minutes", 0) for task in all_tasks), "actual_minutes": sum(task.get("actual_minutes", 0) for task in all_tasks)}}
 
 
 @router.get("/study-tools")
@@ -146,9 +193,48 @@ async def study_tools(current_user: dict = Depends(get_current_user)):
     return {"lessons": [f"Psychology lesson: focused study and memory for {subject}" for subject in subjects[:3]], "flashcards": [f"Flashcards for {topic}" for topic in difficult[:3]], "previous_year_questions": [f"Previous-year questions: {subject}" for subject in subjects[:3]], "mock_tests": [f"Mock test: {subject}" for subject in subjects[:3]]}
 
 
+@router.post("/tasks/preview")
+async def preview_smart_task(request: TaskCreateRequest, current_user: dict = Depends(get_current_user)):
+    await _profile(current_user["_id"])
+    plan = understand_task(request.description, request.deadline, request.recurrence)
+    title = request.description.strip()
+    subtasks = []
+    if plan["minutes"] >= 90 or plan["difficulty"] == "high":
+        portions = 3 if plan["minutes"] >= 150 else 2
+        subtasks = [{"title": f"Part {index + 1}: {title}", "completed": False, "minutes": max(20, round(plan["minutes"] / portions))} for index in range(portions)]
+    return {"title": title, "subject": request.subject.strip(), "plan": plan, "subtasks": subtasks, "suggestion": f"Schedule this {plan['priority']}-priority task for {plan['date']}."}
+
+
+@router.post("/tasks")
+async def add_smart_task(request: TaskCreateRequest, current_user: dict = Depends(get_current_user)):
+    await _profile(current_user["_id"])
+    plan = understand_task(request.description, request.deadline, request.recurrence)
+    title = request.description.strip()
+    portions = 3 if plan["minutes"] >= 150 else 2 if plan["minutes"] >= 90 or plan["difficulty"] == "high" else 0
+    subtasks = [{"id": str(uuid.uuid4()), "title": f"Part {index + 1}: {title}", "completed": False, "minutes": max(20, round(plan["minutes"] / portions))} for index in range(portions)] if portions else []
+    task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title, "subject": request.subject.strip(), "kind": "student_task", **plan, "status": "not_started", "completed": False, "actual_minutes": 0, "subtasks": subtasks, "source": "student", "created_at": datetime.now(timezone.utc)}
+    await student_tasks.insert_one(task)
+    result = {k: v for k, v in task.items() if k not in ("user_id", "created_at")}
+    return {"task": result, "message": f"Added as a {plan['priority']}-priority {plan['minutes']}-minute task for {plan['date']}."}
+
+
 @router.patch("/tasks/{task_id}")
 async def update_task(task_id: str, request: TaskPatch, current_user: dict = Depends(get_current_user)):
-    result = await student_tasks.update_one({"_id": task_id, "user_id": current_user["_id"]}, {"$set": {"completed": request.completed, "updated_at": datetime.now(timezone.utc)}})
+    update = {"updated_at": datetime.now(timezone.utc)}
+    if request.completed is not None:
+        update["completed"] = request.completed
+        update["status"] = "completed" if request.completed else (request.status or "not_started")
+    elif request.status is not None:
+        update["status"] = request.status
+        update["completed"] = request.status == "completed"
+    if request.date is not None: update["date"] = request.date.isoformat()
+    if request.priority is not None: update["priority"] = request.priority
+    if request.title is not None: update["title"] = request.title.strip()
+    if request.actual_minutes is not None:
+        update["actual_minutes"] = request.actual_minutes
+    if update.get("completed"):
+        update["completed_at"] = datetime.now(timezone.utc)
+    result = await student_tasks.update_one({"_id": task_id, "user_id": current_user["_id"]}, {"$set": update})
     if not result.matched_count: raise HTTPException(status_code=404, detail="Task not found.")
     return {"id": task_id, "completed": request.completed}
 
