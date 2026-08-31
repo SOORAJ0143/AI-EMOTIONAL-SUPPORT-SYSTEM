@@ -14,7 +14,8 @@ class Settings(BaseSettings):
 
     SECRET_KEY: str
     JWT_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60
+    # Keep a signed-in browser session for 30 days unless the user logs out.
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 30
     HF_TOKEN: Optional[str] = None
 
     MONGODB_URI: str

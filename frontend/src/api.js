@@ -1,6 +1,7 @@
-// In production, requests go through Vercel's same-site rewrite. This avoids
-// browser cross-origin failures between the public site and the Render API.
-const API_URL = import.meta.env.PROD ? "" : (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+// Vercel uses its same-site rewrite when no URL is configured.  Render (and
+// other static hosts) need the configured API address, otherwise requests are
+// mistakenly sent to the static website and sign-in always fails.
+const API_URL = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
 
 function apiError(response, data, fallback) {
   const error = new Error(data.detail || fallback);
@@ -10,7 +11,10 @@ function apiError(response, data, fallback) {
 
 async function readJson(response, fallback) {
   const data = await response.json().catch(() => ({}));
-  if (!response.ok) throw apiError(response, data, fallback);
+  if (!response.ok) {
+    const message = Object.keys(data).length ? fallback : `${fallback} The service may be unavailable or incorrectly configured.`;
+    throw apiError(response, data, message);
+  }
   return data;
 }
 
