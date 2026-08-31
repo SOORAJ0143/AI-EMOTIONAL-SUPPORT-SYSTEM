@@ -42,6 +42,9 @@ class VectorStore:
             upsert=True,
         )
 
+    async def knowledge_exists(self, document_id: str) -> bool:
+        return await knowledge_base.find_one({"_id": document_id}, {"_id": 1}) is not None
+
     async def search_memories(self, user_id: str, query_embedding: List[float], top_k: int = 5):
         pipeline = [
             {

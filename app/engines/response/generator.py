@@ -41,14 +41,23 @@ Here are examples of how you should respond:
                 example_limit = 20
 
             formatted = []
+            seen_questions = set()
             for ex in examples_list:
                 if not isinstance(ex, dict):
                     continue
 
-                user = ex.get("user") or ex.get("User Query")
+                user = (ex.get("user") or ex.get("User Query") or "").strip()
                 assistant = ex.get("assistant") or ex.get("Chatbot Response")
                 if not user or not assistant:
                     continue
+
+                # The dataset contains multiple answers for the same question.
+                # Use varied examples so the model learns a broader range of
+                # supportive conversations instead of repeating one scenario.
+                question_key = " ".join(user.lower().split())
+                if question_key in seen_questions:
+                    continue
+                seen_questions.add(question_key)
 
                 formatted.append(f'User: "{user}"\nAssistant: "{assistant}"')
                 if len(formatted) >= example_limit:
