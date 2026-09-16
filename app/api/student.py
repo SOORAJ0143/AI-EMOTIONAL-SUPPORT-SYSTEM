@@ -3,12 +3,19 @@ from datetime import date, datetime, timedelta, timezone
 from typing import Literal
 import re
 import uuid
+import smtplib
+from email.message import EmailMessage
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
+from fastapi.responses import Response
+from pypdf import PdfReader
+from docx import Document
+from io import BytesIO
 from pydantic import BaseModel, Field
 
 from app.auth import get_current_user
-from app.models.mongo import student_assessments, student_checkins, student_profiles, student_tasks
+from app.models.mongo import student_assessments, student_checkins, student_profiles, student_tasks, users
+from app.config import settings
 
 router = APIRouter(prefix="/api/v1/student", tags=["Student Success"])
 
@@ -66,6 +73,56 @@ class TaskCreateRequest(BaseModel):
     recurrence: Literal["none", "daily", "weekly"] = "none"
     subject: str = Field(default="", max_length=100)
     confirm_schedule: bool = True
+
+
+def _syllabus_topics(text: str) -> list[str]:
+    lines = [re.sub(r"^[\s\d.\-•]+", "", line).strip() for line in text.splitlines()]
+    topics = [line[:140] for line in lines if 3 <= len(line) <= 140 and not line.lower().startswith(("page ", "syllabus", "course code"))]
+    return list(dict.fromkeys(topics))[:80]
+
+
+async def send_due_reminders():
+    """Called by the application scheduler; safely skips delivery when SMTP is not configured."""
+    if not all((settings.SMTP_HOST, settings.SMTP_USERNAME, settings.SMTP_PASSWORD, settings.SMTP_FROM_EMAIL)): return
+    now = datetime.now().strftime("%H:%M")
+    today = date.today().isoformat()
+    tasks = [task async for task in student_tasks.find({"date": today, "completed": False, "$or": [{"start_time": now}, {"end_time": now}]})]
+    for task in tasks:
+        marker = f"reminder_{now}"
+        if task.get(marker): continue
+        user = await users.find_one({"_id": task["user_id"]}, {"email": 1, "name": 1})
+        if not user or not user.get("email"): continue
+        is_start = task.get("start_time") == now
+        message = EmailMessage(); message["Subject"] = f"HOPEMO study reminder: {task['title']}"; message["From"] = settings.SMTP_FROM_EMAIL; message["To"] = user["email"]
+        message.set_content(f"Hi {user.get('name', 'there')},\n\n{'Your study block starts now.' if is_start else 'Your scheduled study block has ended.'}\n\nTask: {task['title']}\n\nOpen Student Success to mark it complete or continue it later.")
+        try:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=12) as server:
+                if settings.SMTP_USE_TLS: server.starttls()
+                server.login(settings.SMTP_USERNAME, settings.SMTP_PASSWORD); server.send_message(message)
+            await student_tasks.update_one({"_id": task["_id"]}, {"$set": {marker: True}})
+        except Exception:
+            continue
+
+
+@router.post("/syllabus")
+async def upload_syllabus(file: UploadFile = File(...), current_user: dict = Depends(get_current_user)):
+    name = file.filename or "syllabus"
+    suffix = name.lower().rsplit(".", 1)[-1] if "." in name else ""
+    if suffix not in {"pdf", "docx", "txt"}:
+        raise HTTPException(status_code=400, detail="Upload a PDF, DOCX, or TXT syllabus file.")
+    content = await file.read()
+    if len(content) > 8 * 1024 * 1024:
+        raise HTTPException(status_code=400, detail="Keep syllabus files under 8 MB.")
+    try:
+        if suffix == "pdf": text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(content)).pages)
+        elif suffix == "docx": text = "\n".join(p.text for p in Document(BytesIO(content)).paragraphs)
+        else: text = content.decode("utf-8", errors="ignore")
+    except Exception as exc:
+        raise HTTPException(status_code=400, detail="We could not read that file. Try a text-based PDF, DOCX, or TXT file.") from exc
+    topics = _syllabus_topics(text)
+    if not topics: raise HTTPException(status_code=400, detail="No study topics were found in this file.")
+    await student_assessments.update_one({"user_id": current_user["_id"]}, {"$set": {"syllabus_file": name, "syllabus_text": text[:24000], "syllabus_topics": topics, "updated_at": datetime.now(timezone.utc)}}, upsert=True)
+    return {"file_name": name, "topics": topics, "topic_count": len(topics)}
 
 
 def _score(value: float) -> int:
@@ -146,15 +203,18 @@ async def create_roadmap(current_user: dict = Depends(get_current_user)):
     await student_tasks.delete_many({"user_id": current_user["_id"], "source": "roadmap"})
     tasks = []
     difficult = assessment.get("difficult_topics") or []
+    syllabus_topics = assessment.get("syllabus_topics") or _syllabus_topics(assessment.get("syllabus_text") or assessment.get("syllabus", ""))
+    topics = [topic for topic in syllabus_topics if topic not in assessment.get("completed_chapters", [])] or difficult
     subjects = profile["subjects"]
     roadmap_days = min(28, days)
     for offset in range(roadmap_days):
         subject = subjects[offset % len(subjects)]
-        topic = difficult[offset % len(difficult)] if difficult else f"core topic in {subject}"
+        topic = topics[offset % len(topics)] if topics else f"core topic in {subject}"
         week = offset // 7 + 1
         kind = "study" if week == 1 else "quiz" if week == 2 else "revision" if week == 3 else "mock_test"
         title = f"{subject}: {topic}" if kind != "mock_test" else f"{subject}: timed mock test and final revision"
-        task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title, "kind": kind, "week": week, "date": (today + timedelta(days=offset)).isoformat(), "minutes": max(25, round(profile.get("study_hours", 2) * 60 / 2)), "completed": False, "source": "roadmap", "created_at": datetime.now(timezone.utc)}
+        minutes = max(25, round(profile.get("study_hours", 2) * 60 / 2))
+        task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title, "subject": subject, "kind": kind, "week": week, "date": (today + timedelta(days=offset)).isoformat(), "start_time": "18:00", "end_time": f"{18 + minutes // 60:02d}:{minutes % 60:02d}", "minutes": minutes, "completed": False, "status": "not_started", "source": "roadmap", "created_at": datetime.now(timezone.utc)}
         tasks.append(task)
     await student_tasks.insert_many(tasks)
     return {"exam_date": exam_date.isoformat(), "days_remaining": days, "weeks": min(4, (roadmap_days + 6) // 7), "tasks": [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} for task in tasks]}
@@ -182,6 +242,30 @@ async def overview(current_user: dict = Depends(get_current_user)):
         minutes_left = sum(task.get("minutes", 0) for task in tasks if not task.get("completed"))
         notifications.append(f"You have about {minutes_left} minutes planned today. Start the highest-priority task first.")
     return {"profile": profile, "assessment": assessment, "tasks": tasks, "task_views": task_views, "roadmap": roadmap, "checkin": checkin, "notifications": notifications, "task_insights": {"recurring_consistency": consistency, "completed_count": len(completed), "planned_minutes": sum(task.get("minutes", 0) for task in all_tasks), "actual_minutes": sum(task.get("actual_minutes", 0) for task in all_tasks)}}
+
+
+@router.delete("/reset")
+async def reset_student_success(current_user: dict = Depends(get_current_user)):
+    user_id = current_user["_id"]
+    await student_profiles.delete_one({"user_id": user_id})
+    await student_assessments.delete_one({"user_id": user_id})
+    await student_tasks.delete_many({"user_id": user_id})
+    await student_checkins.delete_many({"user_id": user_id})
+    return {"message": "Your Student Success profile, roadmap, and tasks were reset."}
+
+
+@router.get("/roadmap.pdf")
+async def roadmap_pdf(current_user: dict = Depends(get_current_user)):
+    profile = await _profile(current_user["_id"])
+    tasks = [task async for task in student_tasks.find({"user_id": current_user["_id"], "source": "roadmap"}, {"title": 1, "date": 1, "start_time": 1, "minutes": 1}).sort("date", 1)]
+    lines = [f"HOPEMO study roadmap - {profile.get('student_name', 'Student')}", f"Course: {profile.get('course', '')}", ""] + [f"{task.get('date')} {task.get('start_time', '18:00')} - {task.get('title')} ({task.get('minutes', 0)} min)" for task in tasks]
+    escaped = [line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")[:110] for line in lines]
+    stream = "BT /F1 11 Tf 50 770 Td " + " ".join(f"({line}) Tj 0 -16 Td" for line in escaped) + " ET"
+    objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", f"<< /Length {len(stream.encode())} >>\nstream\n{stream}\nendstream"]
+    parts, offsets = ["%PDF-1.4\n"], []
+    for index, obj in enumerate(objects, 1): offsets.append(sum(len(p.encode()) for p in parts)); parts.append(f"{index} 0 obj\n{obj}\nendobj\n")
+    xref = sum(len(p.encode()) for p in parts); parts.append("xref\n0 6\n0000000000 65535 f \n" + "".join(f"{offset:010d} 00000 n \n" for offset in offsets) + f"trailer << /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF")
+    return Response(content="".join(parts).encode(), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=hopemo-study-roadmap.pdf"})
 
 
 @router.get("/study-tools")

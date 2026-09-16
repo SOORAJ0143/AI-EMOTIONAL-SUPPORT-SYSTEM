@@ -90,9 +90,13 @@ def _send_otp(email: str, code: str, subject: str = "Your HOPEMO verification co
         raise RuntimeError("Email verification is not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, and SMTP_FROM_EMAIL.")
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = settings.SMTP_FROM_EMAIL
+    message["From"] = f"HOPEMO <{settings.SMTP_FROM_EMAIL}>"
     message["To"] = email
-    message.set_content(f"Your HOPEMO verification code is {code}. It expires in {settings.OTP_EXPIRE_MINUTES} minutes. Do not share this code.")
+    message["Reply-To"] = settings.SMTP_FROM_EMAIL
+    message["X-Entity-Ref-ID"] = code
+    plain = f"Your HOPEMO verification code is {code}. It expires in {settings.OTP_EXPIRE_MINUTES} minutes. Do not share this code."
+    message.set_content(plain)
+    message.add_alternative(f"""<html><body style='font-family:Arial,sans-serif;color:#173d26'><h2>Verify your HOPEMO account</h2><p>Use this one-time verification code:</p><p style='font-size:28px;font-weight:bold;letter-spacing:6px'>{code}</p><p>This code expires in {settings.OTP_EXPIRE_MINUTES} minutes. For your security, do not share it.</p><p>— The HOPEMO team</p></body></html>""", subtype="html")
     with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=12) as server:
         if settings.SMTP_USE_TLS:
             server.starttls()

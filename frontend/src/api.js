@@ -119,3 +119,10 @@ export const createStudentTask = (token, payload) => authorizedRequest(token, "/
 export const updateStudentTask = (token, id, completedOrPayload) => authorizedRequest(token, `/api/v1/student/tasks/${id}`, "PATCH", typeof completedOrPayload === "boolean" ? { completed: completedOrPayload } : completedOrPayload);
 export const saveStudentCheckin = (token, payload) => authorizedRequest(token, "/api/v1/student/checkin", "POST", payload);
 export const getStudentTools = (token) => authorizedGet(token, "/api/v1/student/study-tools");
+export async function uploadStudentSyllabus(token, file) {
+  const body = new FormData(); body.append("file", file);
+  const response = await fetchWithRetry(`${API_URL}/api/v1/student/syllabus`, { method: "POST", headers: { Authorization: `Bearer ${token}` }, body });
+  return readJson(response, "Unable to read the syllabus file.");
+}
+export const resetStudentSuccess = (token) => authorizedRequest(token, "/api/v1/student/reset", "DELETE");
+export const getStudentRoadmapPdf = () => `${API_URL}/api/v1/student/roadmap.pdf`;

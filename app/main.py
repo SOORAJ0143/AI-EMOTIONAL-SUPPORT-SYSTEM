@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
 from app.api.auth import router as auth_router
-from app.api.student import router as student_router
+from app.api.student import router as student_router, send_due_reminders
 from app.auth import get_current_user
 from app.config import settings
 from app.engines.analytics.tracker import AnalyticsTracker
@@ -45,9 +45,17 @@ hopfield_memory = HopfieldAssociativeMemory(vector_store)
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await connect_to_mongodb()
+    async def reminder_loop():
+        while True:
+            await send_due_reminders()
+            await asyncio.sleep(60)
+    reminder_task = asyncio.create_task(reminder_loop())
     logger.info("HOPEMO started")
-    yield
-    await close_mongodb_connection()
+    try:
+        yield
+    finally:
+        reminder_task.cancel()
+        await close_mongodb_connection()
 
 
 app = FastAPI(title=settings.APP_NAME, version=settings.APP_VERSION, lifespan=lifespan)
