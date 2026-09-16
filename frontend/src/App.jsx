@@ -104,7 +104,7 @@ class AppErrorBoundary extends React.Component {
   constructor(props) { super(props); this.state = { failed: false }; }
   static getDerivedStateFromError() { return { failed: true }; }
   render() {
-    if (this.state.failed) return <main className="recovery-screen"><div><span className="modal-leaf"><Leaf /></span><h1>Let’s start fresh.</h1><p>We couldn’t open this screen. Resetting your saved sign-in session will bring you back to HOPEMO.</p><button className="dark-pill" onClick={() => { localStorage.clear(); window.location.reload(); }}>Reset and return home <ArrowRight /></button></div></main>;
+    if (this.state.failed) return <main className="recovery-screen"><div><span className="modal-leaf"><Leaf /></span><h1>Let’s start fresh.</h1><p>We couldn’t open this screen. Returning home will keep your saved sign-in session.</p><button className="dark-pill" onClick={() => { window.location.hash = "#top"; window.location.reload(); }}>Return home <ArrowRight /></button></div></main>;
     return this.props.children;
   }
 }
