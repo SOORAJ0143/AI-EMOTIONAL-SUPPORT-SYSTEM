@@ -155,8 +155,20 @@ def _study_chunks(topics: list[str]) -> list[dict[str, str]]:
         clean_pieces = [part for part in clean_pieces if len(part) >= 3]
         if not clean_pieces:
             clean_pieces = [body]
+        expanded_pieces = []
         for piece in clean_pieces:
-            piece = piece[:180]
+            # A long parenthesized list is a syllabus shorthand for several distinct
+            # study topics. Expand it only when it would otherwise make one task too large.
+            opening, closing = piece.find("("), piece.rfind(")")
+            if len(piece) > 120 and opening > 3 and closing > opening:
+                heading = piece[:opening].strip(" -:–")
+                details = [detail.strip(" -:–.") for detail in piece[opening + 1:closing].split(",") if detail.strip(" -:–.")]
+                expanded_pieces.extend([f"{heading}: {detail}" for detail in details])
+                if piece[closing + 1:].strip(" -:–."):
+                    expanded_pieces.append(f"{heading}: {piece[closing + 1:].strip(' -:–.')}")
+            else:
+                expanded_pieces.append(piece)
+        for piece in expanded_pieces:
             lowered = piece.lower()
             if any(marker in lowered for marker in ("co and po mapping", "po and pso mapping", "strength of correlation", "addressed to", "course name", "average of non-zeros")):
                 continue
@@ -323,8 +335,8 @@ async def create_roadmap(current_user: dict = Depends(get_current_user)):
     chunks = [chunk for chunk in _study_chunks(syllabus_topics) if not any(done in chunk["topic"].lower() for done in completed)]
     if not chunks:
         chunks = _study_chunks(syllabus_topics) or [{"unit": profile.get("course") or "Course", "topic": "Review the course outline and create your first notes"}]
-    # Difficult areas appear earlier, but every item still comes only from the submitted syllabus.
-    chunks.sort(key=lambda chunk: 0 if any(term and term in chunk["topic"].lower() for term in difficult) else 1)
+    # Keep units in the same order as the supplied syllabus. Difficult topics still receive
+    # a little more time within their normal unit instead of being moved ahead of the basics.
     study_hours = max(0.25, float(profile.get("study_hours", 2)))
     focus = int(assessment.get("focus", 3))
     motivation = int(assessment.get("motivation", 3))
@@ -332,20 +344,41 @@ async def create_roadmap(current_user: dict = Depends(get_current_user)):
     stress = int(assessment.get("stress", 3))
     procrastination = int(assessment.get("procrastination", 3))
     readiness = (focus + motivation + time_management + (6 - stress) + (6 - procrastination)) / 25
-    block_minutes = 50 if study_hours >= 2 and readiness >= .58 else 40 if study_hours >= 1 else 25
-    planned_minutes = max(25, min(150, round(study_hours * 60 * (.65 + readiness * .2))))
-    daily_capacity = max(1, min(3, planned_minutes // block_minutes))
-    roadmap_days = min(days, max(1, (len(chunks) + daily_capacity - 1) // daily_capacity))
+    available_minutes = max(25, min(16 * 60, round(study_hours * 60)))
+    preferred_block = 45 if readiness >= .65 else 35 if readiness >= .45 else 25
+    # The exam date is a hard deadline: determine the number of small syllabus topics
+    # that must be completed per day, then fit them inside the student's stated limit.
+    roadmap_days = min(days, len(chunks))
+    required_per_day = max(1, (len(chunks) + roadmap_days - 1) // roadmap_days)
+    daily_capacity = max(required_per_day, min(4, max(1, available_minutes // preferred_block)))
     subject = profile.get("course") or (profile.get("subjects") or ["Study"])[0]
+    cursor = 0
     for offset in range(roadmap_days):
-        day_chunks = chunks[offset * daily_capacity:(offset + 1) * daily_capacity]
-        if not day_chunks:
+        remaining_chunks = len(chunks) - cursor
+        remaining_days = roadmap_days - offset
+        if not remaining_chunks:
             break
-        minutes = max(25, round(planned_minutes / len(day_chunks))) * len(day_chunks)
+        # Recalculate as the plan progresses so the final day never loses remaining topics.
+        needed_today = max(1, (remaining_chunks + remaining_days - 1) // remaining_days)
+        needed_today = min(daily_capacity, needed_today)
+        # Finish the current unit before starting the next one on the same day whenever
+        # the remaining days still have enough capacity for every later topic.
+        current_unit = chunks[cursor]["unit"]
+        unit_remaining = 0
+        for chunk in chunks[cursor:]:
+            if chunk["unit"] != current_unit:
+                break
+            unit_remaining += 1
+        if 2 <= unit_remaining < needed_today and remaining_chunks - unit_remaining <= (remaining_days - 1) * daily_capacity:
+            needed_today = unit_remaining
+        day_chunks = chunks[cursor:cursor + needed_today]
+        cursor += len(day_chunks)
+        study_minutes_per_topic = max(15, min(preferred_block, available_minutes // len(day_chunks)))
+        minutes = study_minutes_per_topic * len(day_chunks)
         labels = [chunk["topic"] for chunk in day_chunks]
         unit = day_chunks[0]["unit"]
         title = f"{unit}: " + "; ".join(labels)
-        task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title[:500], "subject": subject, "kind": "study", "week": offset // 7 + 1, "date": (today + timedelta(days=offset)).isoformat(), "start_time": "18:00", "end_time": _time_after("18:00", minutes), "minutes": minutes, "subtasks": [{"id": str(uuid.uuid4()), "title": label, "minutes": max(20, round(minutes / len(labels))), "completed": False} for label in labels], "completed": False, "status": "not_started", "source": "roadmap", "created_at": datetime.now(timezone.utc)}
+        task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title[:500], "subject": subject, "kind": "study", "week": offset // 7 + 1, "date": (today + timedelta(days=offset)).isoformat(), "start_time": "18:00", "end_time": _time_after("18:00", minutes), "minutes": minutes, "subtasks": [{"id": str(uuid.uuid4()), "title": label, "minutes": study_minutes_per_topic + (5 if any(term and term in label.lower() for term in difficult) else 0), "completed": False} for label in labels], "completed": False, "status": "not_started", "source": "roadmap", "created_at": datetime.now(timezone.utc)}
         tasks.append(task)
     await student_tasks.insert_many(tasks)
     return {"exam_date": exam_date.isoformat(), "days_remaining": days, "weeks": (len(tasks) + 6) // 7, "tasks": [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} for task in tasks]}
