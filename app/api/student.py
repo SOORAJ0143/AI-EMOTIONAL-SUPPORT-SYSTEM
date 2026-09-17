@@ -92,6 +92,36 @@ def _syllabus_topics(text: str) -> list[str]:
     return list(dict.fromkeys(topics))[:80]
 
 
+def _docx_syllabus_units(content: bytes) -> list[str]:
+    """Read Unit/Module rows and their topic rows from structured university DOCX tables."""
+    document = Document(BytesIO(content))
+    units: list[dict] = []
+    current: dict | None = None
+    unit_re = re.compile(r"^unit\s*([ivxlcdm]+|\d+)\b", re.IGNORECASE)
+    item_re = re.compile(r"^[A-Z]$|^\d+(?:\.\d+)?$", re.IGNORECASE)
+    for table in document.tables:
+        for row in table.rows:
+            cells = []
+            for cell in row.cells:
+                value = re.sub(r"\s+", " ", cell.text).strip()
+                if value and value not in cells:
+                    cells.append(value)
+            if not cells:
+                continue
+            unit_index = next((i for i, value in enumerate(cells) if unit_re.match(value)), None)
+            if unit_index is not None:
+                number = unit_re.match(cells[unit_index]).group(1)
+                title = next((value for value in cells[unit_index + 1:] if not value.lower().startswith("co") and len(value) > 2), "")
+                current = {"label": f"Unit {number}" + (f": {title}" if title else ""), "topics": []}
+                units.append(current)
+                continue
+            if current and item_re.match(cells[0]):
+                topic = next((value for value in cells[1:] if not value.lower().startswith("co") and len(value) > 5), "")
+                if topic:
+                    current["topics"].append(topic)
+    return [f"{unit['label']} — " + " | ".join(unit["topics"]) for unit in units if unit["topics"]]
+
+
 async def send_due_reminders():
     """Called by the application scheduler; safely skips delivery when SMTP is not configured."""
     if not all((settings.SMTP_HOST, settings.SMTP_USERNAME, settings.SMTP_PASSWORD, settings.SMTP_FROM_EMAIL)): return
@@ -126,11 +156,15 @@ async def upload_syllabus(file: UploadFile = File(...), current_user: dict = Dep
         raise HTTPException(status_code=400, detail="Keep syllabus files under 8 MB.")
     try:
         if suffix == "pdf": text = "\n".join(page.extract_text() or "" for page in PdfReader(BytesIO(content)).pages)
-        elif suffix == "docx": text = "\n".join(p.text for p in Document(BytesIO(content)).paragraphs)
+        elif suffix == "docx":
+            document = Document(BytesIO(content))
+            text = "\n".join(p.text for p in document.paragraphs)
         else: text = content.decode("utf-8", errors="ignore")
     except Exception as exc:
         raise HTTPException(status_code=400, detail="We could not read that file. Try a text-based PDF, DOCX, or TXT file.") from exc
-    topics = _syllabus_topics(text)
+    topics = _docx_syllabus_units(content) if suffix == "docx" else _syllabus_topics(text)
+    if not topics:
+        topics = _syllabus_topics(text)
     if not topics: raise HTTPException(status_code=400, detail="No study topics were found in this file.")
     await student_assessments.update_one({"user_id": current_user["_id"]}, {"$set": {"syllabus_file": name, "syllabus_text": text[:24000], "syllabus_topics": topics, "updated_at": datetime.now(timezone.utc)}}, upsert=True)
     found_units = any(re.match(r"^(?:unit|module)\b", item, re.IGNORECASE) for item in topics)
