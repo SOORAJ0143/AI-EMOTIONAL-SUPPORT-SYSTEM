@@ -76,17 +76,29 @@ class TaskCreateRequest(BaseModel):
 
 
 def _syllabus_topics(text: str) -> list[str]:
-    """Prefer official Unit/Module headings, then fall back to meaningful syllabus lines."""
+    """Read a syllabus outline without treating administrative text as study material."""
     raw_lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
     unit_pattern = re.compile(r"^(?:unit|module)\s*(?:[-:–.]?\s*(?:[ivxlcdm]+|\d+))?\s*[-:–.]?\s*(.*)$", re.IGNORECASE)
-    units = []
+    units: list[dict] = []
+    current: dict | None = None
     for line in raw_lines:
         match = unit_pattern.match(line)
         if match:
             title = match.group(1).strip(" -:–.")
-            units.append(line[:180] if title else line[:80])
+            current = {"label": line[:180] if title else line[:80], "topics": []}
+            units.append(current)
+        elif current and line and not re.match(r"^(?:co|po|pso|course code|credits?|hours?|assessment)\b", line, re.IGNORECASE):
+            item = re.sub(r"^(?:[A-Z]|\d+(?:\.\d+)?)\s*[.):\-]\s*", "", line).strip()
+            if 4 <= len(item) <= 220:
+                current["topics"].append(item)
     if units:
-        return list(dict.fromkeys(units))[:30]
+        extracted = []
+        for unit in units:
+            for topic in unit["topics"]:
+                extracted.append(f"{unit['label']} — {topic}")
+            if not unit["topics"]:
+                extracted.append(unit["label"])
+        return list(dict.fromkeys(extracted))[:120]
     lines = [re.sub(r"^[\s\d.\-•]+", "", line).strip() for line in raw_lines]
     topics = [line[:180] for line in lines if 3 <= len(line) <= 180 and not line.lower().startswith(("page ", "syllabus", "course code", "co and po mapping", "average of"))]
     return list(dict.fromkeys(topics))[:80]
@@ -119,7 +131,64 @@ def _docx_syllabus_units(content: bytes) -> list[str]:
                 topic = next((value for value in cells[1:] if not value.lower().startswith("co") and len(value) > 5), "")
                 if topic:
                     current["topics"].append(topic)
-    return [f"{unit['label']} — " + " | ".join(unit["topics"]) for unit in units if unit["topics"]]
+    extracted = []
+    for unit in units:
+        for topic in unit["topics"]:
+            extracted.append(f"{unit['label']} — {topic}")
+    return list(dict.fromkeys(extracted))[:160]
+
+
+def _study_chunks(topics: list[str]) -> list[dict[str, str]]:
+    """Turn broad unit text into small, teachable syllabus-only study chunks."""
+    chunks: list[dict[str, str]] = []
+    seen = set()
+    for raw_topic in topics:
+        text = re.sub(r"\s+", " ", str(raw_topic)).strip()
+        if not text:
+            continue
+        prefix, separator, body = text.partition(" — ")
+        if not separator:
+            prefix, body = "Course topic", text
+        # University syllabi commonly use pipes, semicolons, and commas inside each unit row.
+        pieces = re.split(r"\s*(?:\||;|\u2022)\s*|,\s*(?![^()]*\))", body)
+        clean_pieces = [re.sub(r"^(?:[A-Z]|\d+(?:\.\d+)?)\s*[.):\-]\s*", "", part).strip(" -:–.") for part in pieces]
+        clean_pieces = [part for part in clean_pieces if len(part) >= 3]
+        if not clean_pieces:
+            clean_pieces = [body]
+        for piece in clean_pieces:
+            piece = piece[:180]
+            lowered = piece.lower()
+            if any(marker in lowered for marker in ("co and po mapping", "po and pso mapping", "strength of correlation", "addressed to", "course name", "average of non-zeros")):
+                continue
+            key = f"{prefix.lower()}::{piece.lower()}"
+            if key not in seen:
+                seen.add(key)
+                chunks.append({"unit": prefix[:100], "topic": piece})
+    return chunks
+
+
+def _time_after(start_time: str, minutes: int) -> str:
+    start_hour, start_minute = (int(part) for part in start_time.split(":"))
+    total = (start_hour * 60 + start_minute + minutes) % (24 * 60)
+    return f"{total // 60:02d}:{total % 60:02d}"
+
+
+def _pdf_text(value: str) -> str:
+    return (str(value).replace("–", "-").replace("—", "-").replace("•", "-")
+            .replace("’", "'").encode("latin-1", "replace").decode("latin-1"))
+
+
+def _pdf_wrap(value: str, width: int = 88) -> list[str]:
+    words = _pdf_text(value).split()
+    lines, current = [], ""
+    for word in words:
+        candidate = f"{current} {word}".strip()
+        if current and len(candidate) > width:
+            lines.append(current)
+            current = word
+        else:
+            current = candidate
+    return lines + ([current] if current else [""])
 
 
 async def send_due_reminders():
@@ -248,22 +317,38 @@ async def create_roadmap(current_user: dict = Depends(get_current_user)):
     days = max(7, (exam_date - today).days)
     await student_tasks.delete_many({"user_id": current_user["_id"], "source": "roadmap"})
     tasks = []
-    difficult = assessment.get("difficult_topics") or []
+    difficult = [str(topic).lower() for topic in (assessment.get("difficult_topics") or [])]
     syllabus_topics = assessment.get("syllabus_topics") or _syllabus_topics(assessment.get("syllabus_text") or assessment.get("syllabus", ""))
-    topics = [topic for topic in syllabus_topics if topic not in assessment.get("completed_chapters", [])] or difficult
-    subjects = profile["subjects"]
-    roadmap_days = min(28, days)
+    completed = [str(topic).lower() for topic in assessment.get("completed_chapters", [])]
+    chunks = [chunk for chunk in _study_chunks(syllabus_topics) if not any(done in chunk["topic"].lower() for done in completed)]
+    if not chunks:
+        chunks = _study_chunks(syllabus_topics) or [{"unit": profile.get("course") or "Course", "topic": "Review the course outline and create your first notes"}]
+    # Difficult areas appear earlier, but every item still comes only from the submitted syllabus.
+    chunks.sort(key=lambda chunk: 0 if any(term and term in chunk["topic"].lower() for term in difficult) else 1)
+    study_hours = max(0.25, float(profile.get("study_hours", 2)))
+    focus = int(assessment.get("focus", 3))
+    motivation = int(assessment.get("motivation", 3))
+    time_management = int(assessment.get("time_management", 3))
+    stress = int(assessment.get("stress", 3))
+    procrastination = int(assessment.get("procrastination", 3))
+    readiness = (focus + motivation + time_management + (6 - stress) + (6 - procrastination)) / 25
+    block_minutes = 50 if study_hours >= 2 and readiness >= .58 else 40 if study_hours >= 1 else 25
+    planned_minutes = max(25, min(150, round(study_hours * 60 * (.65 + readiness * .2))))
+    daily_capacity = max(1, min(3, planned_minutes // block_minutes))
+    roadmap_days = min(days, max(1, (len(chunks) + daily_capacity - 1) // daily_capacity))
+    subject = profile.get("course") or (profile.get("subjects") or ["Study"])[0]
     for offset in range(roadmap_days):
-        subject = subjects[offset % len(subjects)]
-        topic = topics[offset % len(topics)] if topics else f"core topic in {subject}"
-        week = offset // 7 + 1
-        kind = "study" if week == 1 else "quiz" if week == 2 else "revision" if week == 3 else "mock_test"
-        title = f"{subject}: {topic}" if kind != "mock_test" else f"{subject}: timed mock test and final revision"
-        minutes = max(25, round(profile.get("study_hours", 2) * 60 / 2))
-        task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title, "subject": subject, "kind": kind, "week": week, "date": (today + timedelta(days=offset)).isoformat(), "start_time": "18:00", "end_time": f"{18 + minutes // 60:02d}:{minutes % 60:02d}", "minutes": minutes, "completed": False, "status": "not_started", "source": "roadmap", "created_at": datetime.now(timezone.utc)}
+        day_chunks = chunks[offset * daily_capacity:(offset + 1) * daily_capacity]
+        if not day_chunks:
+            break
+        minutes = max(25, round(planned_minutes / len(day_chunks))) * len(day_chunks)
+        labels = [chunk["topic"] for chunk in day_chunks]
+        unit = day_chunks[0]["unit"]
+        title = f"{unit}: " + "; ".join(labels)
+        task = {"_id": str(uuid.uuid4()), "user_id": current_user["_id"], "title": title[:500], "subject": subject, "kind": "study", "week": offset // 7 + 1, "date": (today + timedelta(days=offset)).isoformat(), "start_time": "18:00", "end_time": _time_after("18:00", minutes), "minutes": minutes, "subtasks": [{"id": str(uuid.uuid4()), "title": label, "minutes": max(20, round(minutes / len(labels))), "completed": False} for label in labels], "completed": False, "status": "not_started", "source": "roadmap", "created_at": datetime.now(timezone.utc)}
         tasks.append(task)
     await student_tasks.insert_many(tasks)
-    return {"exam_date": exam_date.isoformat(), "days_remaining": days, "weeks": min(4, (roadmap_days + 6) // 7), "tasks": [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} for task in tasks]}
+    return {"exam_date": exam_date.isoformat(), "days_remaining": days, "weeks": (len(tasks) + 6) // 7, "tasks": [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} for task in tasks]}
 
 
 @router.get("/overview")
@@ -274,7 +359,7 @@ async def overview(current_user: dict = Depends(get_current_user)):
     today = date.today().isoformat()
     task_fields = {"_id": 1, "title": 1, "subject": 1, "kind": 1, "minutes": 1, "actual_minutes": 1, "completed": 1, "status": 1, "date": 1, "week": 1, "priority": 1, "difficulty": 1, "deadline": 1, "recurrence": 1, "subtasks": 1, "source": 1}
     tasks = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id, "date": today}, task_fields).sort("priority", -1)]
-    roadmap = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id, "source": "roadmap"}, {"_id": 1, "title": 1, "kind": 1, "minutes": 1, "completed": 1, "date": 1, "week": 1}).sort("date", 1)]
+    roadmap = [{k: v for k, v in task.items() if k not in ("user_id", "created_at")} async for task in student_tasks.find({"user_id": user_id, "source": "roadmap"}, {"_id": 1, "title": 1, "kind": 1, "minutes": 1, "completed": 1, "date": 1, "week": 1, "start_time": 1, "end_time": 1, "subtasks": 1}).sort("date", 1)]
     checkin = await student_checkins.find_one({"user_id": user_id, "date": today}, {"_id": 0, "mood": 1, "note": 1})
     overdue = [task async for task in student_tasks.find({"user_id": user_id, "completed": False, "date": {"$lt": today}}, {"title": 1, "date": 1, "deadline": 1})]
     due_soon = [task async for task in student_tasks.find({"user_id": user_id, "completed": False, "deadline": {"$in": [today, (date.today() + timedelta(days=1)).isoformat()]}}, {"title": 1, "deadline": 1})]
@@ -303,14 +388,30 @@ async def reset_student_success(current_user: dict = Depends(get_current_user)):
 @router.get("/roadmap.pdf")
 async def roadmap_pdf(current_user: dict = Depends(get_current_user)):
     profile = await _profile(current_user["_id"])
-    tasks = [task async for task in student_tasks.find({"user_id": current_user["_id"], "source": "roadmap"}, {"title": 1, "date": 1, "start_time": 1, "minutes": 1}).sort("date", 1)]
-    lines = [f"HOPEMO study roadmap - {profile.get('student_name', 'Student')}", f"Course: {profile.get('course', '')}", ""] + [f"{task.get('date')} {task.get('start_time', '18:00')} - {task.get('title')} ({task.get('minutes', 0)} min)" for task in tasks]
-    escaped = [line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)")[:110] for line in lines]
-    stream = "BT /F1 11 Tf 50 770 Td " + " ".join(f"({line}) Tj 0 -16 Td" for line in escaped) + " ET"
-    objects = ["<< /Type /Catalog /Pages 2 0 R >>", "<< /Type /Pages /Kids [3 0 R] /Count 1 >>", "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>", "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>", f"<< /Length {len(stream.encode())} >>\nstream\n{stream}\nendstream"]
+    tasks = [task async for task in student_tasks.find({"user_id": current_user["_id"], "source": "roadmap"}, {"title": 1, "date": 1, "start_time": 1, "end_time": 1, "minutes": 1, "subtasks": 1}).sort("date", 1)]
+    lines = [f"HOPEMO study roadmap - {profile.get('student_name', 'Student')}", f"Course: {profile.get('course', '')}", f"Daily study time: {profile.get('study_hours', 0)} hours", f"{len(tasks)} planned study days", ""]
+    for task in tasks:
+        lines.extend(_pdf_wrap(f"{task.get('date')} | {task.get('start_time', '18:00')}-{task.get('end_time', '')} | {task.get('minutes', 0)} minutes"))
+        for subtask in task.get("subtasks") or [{"title": task.get("title", "Study task")}]:
+            lines.extend(_pdf_wrap(f"  - {subtask.get('title', '')}"))
+        lines.append("")
+    pages = [lines[index:index + 42] for index in range(0, len(lines), 42)] or [["No roadmap tasks have been created yet."]]
+    objects = {1: "<< /Type /Catalog /Pages 2 0 R >>", 3: "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>"}
+    page_ids = []
+    next_id = 4
+    for page_lines in pages:
+        page_id, content_id = next_id, next_id + 1
+        next_id += 2
+        page_ids.append(page_id)
+        escaped = [line.replace("\\", "\\\\").replace("(", "\\(").replace(")", "\\)") for line in page_lines]
+        stream = "BT /F1 11 Tf 50 760 Td " + " ".join(f"({line}) Tj 0 -16 Td" for line in escaped) + " ET"
+        objects[page_id] = f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 3 0 R >> >> /Contents {content_id} 0 R >>"
+        objects[content_id] = f"<< /Length {len(stream.encode())} >>\nstream\n{stream}\nendstream"
+    objects[2] = f"<< /Type /Pages /Kids [{' '.join(f'{page_id} 0 R' for page_id in page_ids)}] /Count {len(page_ids)} >>"
     parts, offsets = ["%PDF-1.4\n"], []
-    for index, obj in enumerate(objects, 1): offsets.append(sum(len(p.encode()) for p in parts)); parts.append(f"{index} 0 obj\n{obj}\nendobj\n")
-    xref = sum(len(p.encode()) for p in parts); parts.append("xref\n0 6\n0000000000 65535 f \n" + "".join(f"{offset:010d} 00000 n \n" for offset in offsets) + f"trailer << /Size 6 /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF")
+    for index in range(1, next_id):
+        offsets.append(sum(len(p.encode()) for p in parts)); parts.append(f"{index} 0 obj\n{objects[index]}\nendobj\n")
+    xref = sum(len(p.encode()) for p in parts); parts.append(f"xref\n0 {next_id}\n0000000000 65535 f \n" + "".join(f"{offset:010d} 00000 n \n" for offset in offsets) + f"trailer << /Size {next_id} /Root 1 0 R >>\nstartxref\n{xref}\n%%EOF")
     return Response(content="".join(parts).encode(), media_type="application/pdf", headers={"Content-Disposition": "attachment; filename=hopemo-study-roadmap.pdf"})
 
 
