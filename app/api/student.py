@@ -44,7 +44,7 @@ class AssessmentRequest(BaseModel):
     sleep: int = Field(ge=1, le=5)
     time_management: int = Field(ge=1, le=5)
     procrastination: int = Field(ge=1, le=5)
-    syllabus: str = Field(default="", max_length=100)
+    syllabus: str = Field(default="")
     completed_chapters: list[str] = Field(default_factory=list, max_length=100)
     daily_social_hours: float = Field(default=0, ge=0, le=24)
     revision_frequency: int = Field(default=3, ge=1, le=5)
@@ -76,8 +76,19 @@ class TaskCreateRequest(BaseModel):
 
 
 def _syllabus_topics(text: str) -> list[str]:
-    lines = [re.sub(r"^[\s\d.\-•]+", "", line).strip() for line in text.splitlines()]
-    topics = [line[:140] for line in lines if 3 <= len(line) <= 140 and not line.lower().startswith(("page ", "syllabus", "course code"))]
+    """Prefer official Unit/Module headings, then fall back to meaningful syllabus lines."""
+    raw_lines = [re.sub(r"\s+", " ", line).strip() for line in text.splitlines()]
+    unit_pattern = re.compile(r"^(?:unit|module)\s*(?:[-:–.]?\s*(?:[ivxlcdm]+|\d+))?\s*[-:–.]?\s*(.*)$", re.IGNORECASE)
+    units = []
+    for line in raw_lines:
+        match = unit_pattern.match(line)
+        if match:
+            title = match.group(1).strip(" -:–.")
+            units.append(line[:180] if title else line[:80])
+    if units:
+        return list(dict.fromkeys(units))[:30]
+    lines = [re.sub(r"^[\s\d.\-•]+", "", line).strip() for line in raw_lines]
+    topics = [line[:180] for line in lines if 3 <= len(line) <= 180 and not line.lower().startswith(("page ", "syllabus", "course code", "co and po mapping", "average of"))]
     return list(dict.fromkeys(topics))[:80]
 
 
@@ -122,7 +133,8 @@ async def upload_syllabus(file: UploadFile = File(...), current_user: dict = Dep
     topics = _syllabus_topics(text)
     if not topics: raise HTTPException(status_code=400, detail="No study topics were found in this file.")
     await student_assessments.update_one({"user_id": current_user["_id"]}, {"$set": {"syllabus_file": name, "syllabus_text": text[:24000], "syllabus_topics": topics, "updated_at": datetime.now(timezone.utc)}}, upsert=True)
-    return {"file_name": name, "topics": topics, "topic_count": len(topics)}
+    found_units = any(re.match(r"^(?:unit|module)\b", item, re.IGNORECASE) for item in topics)
+    return {"file_name": name, "topics": topics, "topic_count": len(topics), "extraction_type": "units" if found_units else "topics"}
 
 
 def _score(value: float) -> int:
