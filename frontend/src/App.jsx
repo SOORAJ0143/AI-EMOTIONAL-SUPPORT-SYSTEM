@@ -966,7 +966,17 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
         </div>
         <div className="insight-card interactive-insight-card">
           <small>LIVE EMOTIONAL INSIGHT</small>
-          <h3>{wellbeingInsights[activeInsight][2]}</h3>
+          <h3>
+            {activeInsight === 2 ? (
+              <>
+                Progress becomes clearer
+                <br />
+                when the right signals are connected.
+              </>
+            ) : (
+              wellbeingInsights[activeInsight][2]
+            )}
+          </h3>
           {wellbeingInsights.map(([Icon, label], index) => (
             <button
               className={`insight-line ${activeInsight === index ? "active" : ""}`}
@@ -1019,11 +1029,11 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "behavior",
             ],
             [
-              Heart,
-              "Personalized Support Intelligence",
-              "Organize progress context, recommendations, and next-step information around the needs of each person and professional.",
+              Bell,
+              "Smart alerts",
+              "Bring the signals that need attention into one calm, actionable view.",
               "/home-visuals/heart-brain.jpeg",
-              "support",
+              "alerts",
             ],
             [
               Sparkles,
