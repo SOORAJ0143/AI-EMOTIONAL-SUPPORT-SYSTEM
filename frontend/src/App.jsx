@@ -1523,6 +1523,17 @@ const pageDetails = {
     "This short self-reflection uses your selected answers to create a score-based report. It is not a diagnosis, treatment, or a substitute for professional care.",
   ],
 };
+
+const infoPageNames = new Set(Object.keys(pageDetails));
+
+function infoPageFromAddress() {
+  if (typeof window === "undefined" || !window.location.hash.startsWith("#/")) {
+    return "";
+  }
+  const page = window.location.hash.slice(2);
+  return infoPageNames.has(page) ? page : "";
+}
+
 function AboutPage({ onHome, startChat }) {
   const features = [
     [
@@ -2229,7 +2240,7 @@ class AppErrorBoundary extends React.Component {
 function HopemoApp() {
   const [screen, setScreen] = useState("home");
   const [authOpen, setAuthOpen] = useState(false);
-  const [infoPage, setInfoPage] = useState("");
+  const [infoPage, setInfoPage] = useState(infoPageFromAddress);
   const [token, setToken] = useState(
     localStorage.getItem("hopemo_access_token") || "",
   );
@@ -2277,9 +2288,33 @@ function HopemoApp() {
     setScreen("chat");
     setAuthOpen(true);
   }
-  const goHome = () => {
-    setInfoPage("");
+
+  function navigateToInfoPage(page) {
+    const nextHash = page ? `#/${page}` : "";
+    if (window.location.hash !== nextHash) {
+      window.history.pushState(
+        { hopemoPage: page || "home" },
+        "",
+        `${window.location.pathname}${window.location.search}${nextHash}`,
+      );
+    }
+    setInfoPage(page);
     setScreen("home");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  useEffect(() => {
+    const restoreFromBrowserHistory = () => {
+      setInfoPage(infoPageFromAddress());
+      setScreen("home");
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    };
+    window.addEventListener("popstate", restoreFromBrowserHistory);
+    return () => window.removeEventListener("popstate", restoreFromBrowserHistory);
+  }, []);
+
+  const goHome = () => {
+    navigateToInfoPage("");
   };
   return (
     <>
@@ -2323,16 +2358,10 @@ function HopemoApp() {
           startChat={startChat}
           token={token}
           logout={logout}
-          openReport={() => {
-            setInfoPage("mental-report");
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          }}
+          openReport={() => navigateToInfoPage("mental-report")}
           onNavigate={(page) => {
             if (page === "student-success") startStudentSuccess();
-            else {
-              setInfoPage(page);
-              window.scrollTo({ top: 0, behavior: "smooth" });
-            }
+            else navigateToInfoPage(page);
           }}
         />
       )}
