@@ -1164,7 +1164,8 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
       <section className="showcase-cases" id="showcase-use-cases">
         <p className="section-label">ONE PLATFORM. THREE CONNECTIONS.</p>
         <h2>Who HOPEMO is built for.</h2>
-        <div>
+        <div className="audience-marquee" aria-label="Who HOPEMO is built for">
+          <div className="audience-track">
           {[
             [
               "Psychology",
@@ -1186,15 +1187,32 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "Build emotional intelligence into the systems, workflows, and decisions of people-focused organizations.",
               "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=700&q=85",
             ],
-          ].map(([title, copy, image]) => (
+            [
+              "Care teams",
+              "Give support teams clearer emotional context so they can deliver thoughtful, connected care.",
+              "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=700&q=85",
+            ],
+            [
+              "Individuals",
+              "A private space to reflect, understand patterns, and take meaningful next steps.",
+              "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=85",
+            ],
+          ].concat([
+            ["Psychology", "Client ↔ Psychologist. Help psychologists understand what happens between appointments through continuous context and structured insights.", "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?auto=format&fit=crop&w=700&q=85"],
+            ["Education", "Student ↔ Institution. Help institutions understand student engagement and wellbeing beyond the classroom.", "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=700&q=85"],
+            ["Workplace", "Employee ↔ HR. Give HR teams a clearer view of changing employee experiences beyond periodic feedback.", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=700&q=85"],
+            ["Organizations", "Build emotional intelligence into the systems, workflows, and decisions of people-focused organizations.", "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=700&q=85"],
+            ["Care teams", "Give support teams clearer emotional context so they can deliver thoughtful, connected care.", "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=700&q=85"],
+            ["Individuals", "A private space to reflect, understand patterns, and take meaningful next steps.", "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=85"],
+          ]).map(([title, copy, image], index) => (
             <article
-              className={title === "Education" ? "student-case" : ""}
+              className={`${title === "Education" ? "student-case " : ""}audience-card`}
               onClick={
                 title === "Education"
                   ? () => onNavigate("student-success")
                   : undefined
               }
-              key={title}
+              key={`${title}-${index}`}
             >
               <div
                 className="case-art"
@@ -1210,6 +1228,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               </b>
             </article>
           ))}
+          </div>
         </div>
       </section>
       <section className="showcase-impact">
