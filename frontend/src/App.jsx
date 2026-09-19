@@ -689,9 +689,11 @@ function ChatScreen({
 function Landing({ startChat, token, logout, onNavigate, openReport }) {
   const landingRef = useRef(null);
   const comparisonScrollRef = useRef(null);
+  const integrationsRef = useRef(null);
   const [comparisonMode, setComparisonMode] = useState("before");
   const [journeyStep, setJourneyStep] = useState(0);
   const [activeInsight, setActiveInsight] = useState(0);
+  const [integrationsReady, setIntegrationsReady] = useState(false);
   const wellbeingInsights = [
     [Leaf, "Calm and grounded", "Feeling supported starts with being seen."],
     [Heart, "Needs a gentle check-in", "A small moment of care can make a meaningful difference."],
@@ -755,6 +757,21 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
     }, 3200);
     return () => window.clearInterval(timer);
   }, [wellbeingInsights.length]);
+  useEffect(() => {
+    const section = integrationsRef.current;
+    if (!section) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setIntegrationsReady(true);
+          observer.unobserve(section);
+        }
+      },
+      { threshold: 0.28 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
   useEffect(() => {
     let frame = 0;
     const updateComparison = () => {
@@ -1014,6 +1031,13 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "Transform complex human signals into clear, contextual insights for the people responsible for support.",
               "/home-visuals/emotion-brain.jpeg",
               "insights",
+            ],
+            [
+              Leaf,
+              "Personalized Recovery Plans",
+              "Bring weekly recovery context, micro-actions, recommendations, and progress signals together in one supportive view.",
+              "/home-visuals/recovery-plans.png",
+              "recovery",
             ],
           ].map(([Icon, title, text, image, tone], index) => (
             <article
@@ -1342,7 +1366,10 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
           </div>
         </div>
       </section>
-      <section className="showcase-integrations">
+      <section
+        className={`showcase-integrations ${integrationsReady ? "is-ready" : ""}`}
+        ref={integrationsRef}
+      >
         <p className="section-label">FLEXIBLE BY DESIGN</p>
         <h2>An intelligence layer, not another isolated tool.</h2>
         <p>
