@@ -690,10 +690,12 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
   const landingRef = useRef(null);
   const comparisonScrollRef = useRef(null);
   const integrationsRef = useRef(null);
+  const impactRef = useRef(null);
   const [comparisonMode, setComparisonMode] = useState("before");
   const [journeyStep, setJourneyStep] = useState(0);
   const [activeInsight, setActiveInsight] = useState(0);
   const [integrationsReady, setIntegrationsReady] = useState(false);
+  const [impactReady, setImpactReady] = useState(false);
   const wellbeingInsights = [
     [Leaf, "Calm and grounded", "Feeling supported starts with being seen."],
     [Heart, "Needs a gentle check-in", "A small moment of care can make a meaningful difference."],
@@ -764,6 +766,21 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
       ([entry]) => {
         if (entry.isIntersecting) {
           setIntegrationsReady(true);
+          observer.unobserve(section);
+        }
+      },
+      { threshold: 0.28 },
+    );
+    observer.observe(section);
+    return () => observer.disconnect();
+  }, []);
+  useEffect(() => {
+    const section = impactRef.current;
+    if (!section) return undefined;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setImpactReady(true);
           observer.unobserve(section);
         }
       },
@@ -1029,13 +1046,6 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "behavior",
             ],
             [
-              Bell,
-              "Smart alerts",
-              "Bring the signals that need attention into one calm, actionable view.",
-              "/home-visuals/heart-brain.jpeg",
-              "alerts",
-            ],
-            [
               Sparkles,
               "AI-Powered Insights",
               "Transform complex human signals into clear, contextual insights for the people responsible for support.",
@@ -1064,7 +1074,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               <div className="core-card-copy">
                 <h3>{title}</h3>
                 <p>{text}</p>
-                <ArrowRight />
+                {tone !== "recovery" && <ArrowRight />}
               </div>
             </article>
           ))}
@@ -1296,7 +1306,10 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
           </div>
         </div>
       </section>
-      <section className="showcase-impact">
+      <section
+        className={`showcase-impact ${impactReady ? "is-ready" : ""}`}
+        ref={impactRef}
+      >
         <div>
           <p className="section-label">OUR IMPACT</p>
           <h2>A calmer way to support emotional wellbeing.</h2>
