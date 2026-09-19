@@ -693,9 +693,9 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
   const [journeyStep, setJourneyStep] = useState(0);
   const [activeInsight, setActiveInsight] = useState(0);
   const wellbeingInsights = [
-    [Leaf, "Calm and grounded", "Feeling supported starts with being seen.", "72%"],
-    [Heart, "Needs a gentle check-in", "A small moment of care can make a meaningful difference.", "18%"],
-    [Sparkles, "Positive momentum", "Progress becomes clearer when the right signals are connected.", "86%"],
+    [Leaf, "Calm and grounded", "Feeling supported starts with being seen."],
+    [Heart, "Needs a gentle check-in", "A small moment of care can make a meaningful difference."],
+    [Sparkles, "Positive momentum", "Progress becomes clearer when the right signals are connected."],
   ];
   const journeySteps = [
     [
@@ -749,6 +749,12 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
     }, 4000);
     return () => window.clearInterval(timer);
   }, [journeySteps.length]);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setActiveInsight((current) => (current + 1) % wellbeingInsights.length);
+    }, 3200);
+    return () => window.clearInterval(timer);
+  }, [wellbeingInsights.length]);
   useEffect(() => {
     let frame = 0;
     const updateComparison = () => {
@@ -944,13 +950,13 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
         <div className="insight-card interactive-insight-card">
           <small>LIVE EMOTIONAL INSIGHT</small>
           <h3>{wellbeingInsights[activeInsight][2]}</h3>
-          {wellbeingInsights.map(([Icon, label, , value], index) => (
+          {wellbeingInsights.map(([Icon, label], index) => (
             <button
               className={`insight-line ${activeInsight === index ? "active" : ""}`}
               onClick={() => setActiveInsight(index)}
               key={label}
             >
-              <Icon /> {label} <b>{value}</b>
+              <Icon /> {label}
             </button>
           ))}
         </div>
@@ -1064,8 +1070,8 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             ["Workplace", "Employee ↔ HR"],
             ["Education", "Student ↔ Institution"],
             ["Human-first", "AI with oversight"],
-          ].map(([stat, label]) => (
-            <article key={stat}>
+          ].map(([stat, label], index) => (
+            <article style={{ "--card-index": index }} key={stat}>
               <strong>{stat}</strong>
               <span>{label}</span>
             </article>
@@ -1356,7 +1362,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             "Professional insight",
             "Human action",
           ].map((item, index) => (
-            <article key={item}>
+            <article style={{ "--card-index": index }} key={item}>
               <span>{["✦", "♡", "◌", "↗", "☼", "⌁"][index]}</span>
               {item}
             </article>
