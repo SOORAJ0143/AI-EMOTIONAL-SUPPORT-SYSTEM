@@ -688,8 +688,15 @@ function ChatScreen({
 }
 function Landing({ startChat, token, logout, onNavigate, openReport }) {
   const landingRef = useRef(null);
+  const comparisonScrollRef = useRef(null);
   const [comparisonMode, setComparisonMode] = useState("before");
   const [journeyStep, setJourneyStep] = useState(0);
+  const [activeInsight, setActiveInsight] = useState(0);
+  const wellbeingInsights = [
+    [Leaf, "Calm and grounded", "Feeling supported starts with being seen.", "72%"],
+    [Heart, "Needs a gentle check-in", "A small moment of care can make a meaningful difference.", "18%"],
+    [Sparkles, "Positive momentum", "Progress becomes clearer when the right signals are connected.", "86%"],
+  ];
   const journeySteps = [
     [
       "Connect securely",
@@ -742,6 +749,32 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
     }, 4000);
     return () => window.clearInterval(timer);
   }, [journeySteps.length]);
+  useEffect(() => {
+    let frame = 0;
+    const updateComparison = () => {
+      frame = 0;
+      const track = comparisonScrollRef.current;
+      if (!track || window.innerWidth <= 760) return;
+      const bounds = track.getBoundingClientRect();
+      const distance = Math.max(1, bounds.height - window.innerHeight);
+      const progress = Math.min(1, Math.max(0, -bounds.top / distance));
+      const nextMode = progress >= 0.5 ? "after" : "before";
+      setComparisonMode((current) =>
+        current === nextMode ? current : nextMode,
+      );
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(updateComparison);
+    };
+    updateComparison();
+    window.addEventListener("scroll", onScroll, { passive: true });
+    window.addEventListener("resize", onScroll);
+    return () => {
+      window.removeEventListener("scroll", onScroll);
+      window.removeEventListener("resize", onScroll);
+      if (frame) window.cancelAnimationFrame(frame);
+    };
+  }, []);
   return (
     <main ref={landingRef} className="landing scroll-landing">
       <nav className="ref-nav">
@@ -799,13 +832,9 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             </button>
             <button
               className="white-pill"
-              onClick={() =>
-                document
-                  .querySelector("#features")
-                  ?.scrollIntoView({ behavior: "smooth" })
-              }
+              onClick={() => onNavigate("student-success")}
             >
-              View demo
+              Student Success <BookOpen />
             </button>
             <button className="report-pill" onClick={openReport}>
               Open your wellbeing report <ArrowRight />
@@ -823,6 +852,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
           />
         </div>
       </section>
+      <div className="comparison-scroll-track" ref={comparisonScrollRef}>
       <section className={`comparison-section ${comparisonMode}`}>
         <h2>
           Better support starts
@@ -851,7 +881,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             }
             aria-label="Switch comparison"
           >
-            ✦
+            <img src="/home-visuals/comparison-switch.png" alt="" />
           </button>
         </div>
         <div className="comparison-card">
@@ -880,30 +910,25 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               ))}
             </ul>
           </div>
-          <aside>
-            <article>
-              <strong>
-                {comparisonMode === "before" ? "Limited" : "Continuous"}
-              </strong>
-              <span>
-                {comparisonMode === "before"
-                  ? "Important signals can be missed between interactions."
-                  : "Context across the moments that matter."}
-              </span>
-            </article>
-            <article>
-              <strong>
-                {comparisonMode === "before" ? "Scattered" : "Connected"}
-              </strong>
-              <span>
-                {comparisonMode === "before"
-                  ? "Changing human experiences lack a connected view."
-                  : "Signals brought together in one intelligent view."}
-              </span>
-            </article>
-          </aside>
+          <div className="comparison-visual" aria-hidden="true">
+            <span className="comparison-status">
+              {comparisonMode === "before"
+                ? "Disconnected signals"
+                : "Connected human context"}
+            </span>
+            <div className="comparison-network">
+              <i /><i /><i /><i /><i /><i />
+              <b>{comparisonMode === "before" ? "?" : "✦"}</b>
+            </div>
+            <p>
+              {comparisonMode === "before"
+                ? "The wider story stays hidden when signals live apart."
+                : "A living view of the moments, patterns, and progress that matter."}
+            </p>
+          </div>
         </div>
       </section>
+      </div>
       <section className="split-section" id="products">
         <div>
           <p className="section-label">EMOTIONAL WELLBEING, MADE CLEAR</p>
@@ -916,18 +941,18 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             Explore platform <ArrowRight />
           </button>
         </div>
-        <div className="insight-card">
+        <div className="insight-card interactive-insight-card">
           <small>LIVE EMOTIONAL INSIGHT</small>
-          <h3>Feeling supported starts with being seen.</h3>
-          <div className="insight-line">
-            <Leaf /> Calm and grounded <b>72%</b>
-          </div>
-          <div className="insight-line">
-            <Heart /> Needs a gentle check-in <b>18%</b>
-          </div>
-          <div className="insight-line">
-            <Sparkles /> Positive momentum <b>86%</b>
-          </div>
+          <h3>{wellbeingInsights[activeInsight][2]}</h3>
+          {wellbeingInsights.map(([Icon, label, , value], index) => (
+            <button
+              className={`insight-line ${activeInsight === index ? "active" : ""}`}
+              onClick={() => setActiveInsight(index)}
+              key={label}
+            >
+              <Icon /> {label} <b>{value}</b>
+            </button>
+          ))}
         </div>
       </section>
       <section className="feature-section core-intelligence" id="features">
@@ -1053,7 +1078,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
         <div className="pricing-grid">
           {[
             ["Starter", "For a personal reflective space", "Free"],
-            ["Plus", "For deeper emotional insights", "$9 / month"],
+            ["Plus", "For deeper emotional insights", "₹149 / month"],
             ["Care", "For teams and organizations", "Talk to us"],
           ].map(([plan, copy, price], index) => (
             <article className={index === 1 ? "popular" : ""} key={plan}>
