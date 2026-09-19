@@ -1618,6 +1618,10 @@ function AboutPage({ onHome, startChat }) {
           ))}
         </div>
       </section>
+      <section className="enterprise-meadow" aria-label="A calm HOPEMO environment">
+        <img src="/home-visuals/about-meadow.png" alt="A calm meadow with wildflowers" />
+        <span>HOPEMO AI</span>
+      </section>
       <section className="enterprise-intro">
         <p>INTELLIGENCE THAT UNDERSTANDS EVERY CONVERSATION</p>
         <h2>Beyond traditional chatbots.</h2>
