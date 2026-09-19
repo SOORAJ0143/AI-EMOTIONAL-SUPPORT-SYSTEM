@@ -1276,7 +1276,8 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             <i /> <span>Privacy-first</span>
           </div>
         </div>
-        <div className="showcase-quotes">
+        <div className="testimonial-marquee" aria-label="HOPEMO reviews">
+          <div className="showcase-quotes testimonial-track">
           {[
             [
               "I finally have space to pause and understand what I’m feeling, without pressure.",
@@ -1293,8 +1294,12 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "A wellbeing-focused user",
               "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=85",
             ],
-          ].map(([quote, person, image]) => (
-            <article key={person}>
+          ].concat([
+            ["I finally have space to pause and understand what I’m feeling, without pressure.", "A daily HOPEMO user", "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=160&q=85"],
+            ["The insights help me notice patterns I would usually overlook.", "A student using HOPEMO", "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=160&q=85"],
+            ["It feels thoughtful, calm, and genuinely easy to come back to.", "A wellbeing-focused user", "https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=160&q=85"],
+          ]).map(([quote, person, image], index) => (
+            <article key={`${person}-${index}`}>
               <span>★★★★★</span>
               <p>“{quote}”</p>
               <div className="quote-person">
@@ -1303,6 +1308,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               </div>
             </article>
           ))}
+          </div>
         </div>
       </section>
       <section className="showcase-integrations">
