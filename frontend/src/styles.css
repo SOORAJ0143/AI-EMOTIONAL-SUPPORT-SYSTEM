@@ -154,6 +154,7 @@
 
 /* Uncropped supplied mark and image-led feature cards. */
 .ref-nav{height:86px;padding-top:9px;padding-bottom:9px}
+.scroll-landing .ref-nav{background:#fff!important;backdrop-filter:none;-webkit-backdrop-filter:none}
 .ref-nav .wordmark{width:190px;overflow:visible}
 .ref-nav .brand-image{width:190px;height:66px;object-fit:contain!important;mix-blend-mode:multiply;transform:scale(1.16);transform-origin:center;will-change:transform}
 .enterprise-logo{height:64px;object-fit:contain!important;mix-blend-mode:multiply;transform:scale(1.16);transform-origin:center}
