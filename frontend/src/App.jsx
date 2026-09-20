@@ -1784,14 +1784,6 @@ function AboutPage({ onHome, startChat, onNavigate }) {
           ))}
         </div>
       </section>
-      <section className="about-trust-panel">
-        <strong>Your data is protected<br />at every level</strong>
-        <div aria-label="Security standards">
-          <span>SOC2<br /><small>TYPE 2</small></span>
-          <span>ISO<br /><small>27001</small></span>
-          <span>GDPR<br /><small>READY</small></span>
-        </div>
-      </section>
       <section className="enterprise-use about-impact" id="enterprise-use-cases">
         <div>
           <p>OUR IMPACT IN NUMBERS</p>
