@@ -2086,6 +2086,33 @@ const infoContent = {
 function InfoPage({ page, onHome, startChat, onNavigate }) {
   const [label, title, copy] = pageDetails[page] || pageDetails.about;
   const content = infoContent[page] || infoContent.features;
+  const [contactForm, setContactForm] = useState({
+    name: "",
+    email: "",
+    phone: "",
+    organization: "",
+    subject: "",
+    message: "",
+  });
+  const updateContactField = (event) => {
+    const { name, value } = event.target;
+    setContactForm((current) => ({ ...current, [name]: value }));
+  };
+  const sendContactEmail = (event) => {
+    event.preventDefault();
+    const subject =
+      contactForm.subject.trim() || "How can we help your organization?";
+    const body = [
+      `Full name: ${contactForm.name}`,
+      `Email address: ${contactForm.email}`,
+      `Phone number: ${contactForm.phone || "Not provided"}`,
+      `Organization: ${contactForm.organization || "Not provided"}`,
+      "",
+      "Message:",
+      contactForm.message,
+    ].join("\n");
+    window.location.href = `mailto:Ceo@hopemoai.in?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+  };
   return (
     <main className="info-page">
       <nav>
@@ -2101,33 +2128,114 @@ function InfoPage({ page, onHome, startChat, onNavigate }) {
           Explore platform <ArrowRight />
         </button>
       </nav>
-      <section>
-        <p>{label.toUpperCase()}</p>
-        <h1>{title}</h1>
-        <span>{copy}</span>
-        <div className="info-detail-grid">
-          {content.sections.map(([heading, items]) => (
-            <article key={heading}>
-              <h2>{heading}</h2>
-              {items.map((item) => (
-                <p key={item}>{item}</p>
-              ))}
-            </article>
-          ))}
-        </div>
-        {page === "contact" ? (
-          <a className="blue-pill contact-mail-button" href="mailto:Ceo@hopemoai.in">
-            Email customer support <ArrowRight />
-          </a>
-        ) : (
+      {page === "contact" ? (
+        <section className="contact-page-section">
+          <p>{label.toUpperCase()}</p>
+          <h1>Get in touch with our team</h1>
+          <span>
+            Have questions about Hopemo, our platform, integrations, or
+            enterprise solutions? Our team is ready to help you explore how
+            emotional intelligence infrastructure can support your organization.
+          </span>
+          <div className="contact-layout">
+            <aside>
+              <h2>Built for people-first organizations</h2>
+              <ul>
+                <li>Human-centered intelligence</li>
+                <li>Secure data infrastructure</li>
+                <li>Privacy-first design</li>
+                <li>Enterprise-ready solutions</li>
+              </ul>
+              <a href="mailto:Ceo@hopemoai.in">Ceo@hopemoai.in</a>
+            </aside>
+            <form onSubmit={sendContactEmail}>
+              <label>
+                Full name *
+                <input
+                  name="name"
+                  value={contactForm.name}
+                  onChange={updateContactField}
+                  autoComplete="name"
+                  required
+                />
+              </label>
+              <label>
+                Email address *
+                <input
+                  name="email"
+                  type="email"
+                  value={contactForm.email}
+                  onChange={updateContactField}
+                  autoComplete="email"
+                  required
+                />
+              </label>
+              <label>
+                Phone number
+                <input
+                  name="phone"
+                  type="tel"
+                  value={contactForm.phone}
+                  onChange={updateContactField}
+                  autoComplete="tel"
+                />
+              </label>
+              <label>
+                Organization
+                <input
+                  name="organization"
+                  value={contactForm.organization}
+                  onChange={updateContactField}
+                  autoComplete="organization"
+                />
+              </label>
+              <label className="contact-form-wide">
+                Subject
+                <input
+                  name="subject"
+                  value={contactForm.subject}
+                  onChange={updateContactField}
+                  placeholder="How can we help your organization?"
+                />
+              </label>
+              <label className="contact-form-wide">
+                Message
+                <textarea
+                  name="message"
+                  value={contactForm.message}
+                  onChange={updateContactField}
+                  required
+                />
+              </label>
+              <button className="blue-pill contact-form-wide" type="submit">
+                Send Message <ArrowRight />
+              </button>
+            </form>
+          </div>
+        </section>
+      ) : (
+        <section>
+          <p>{label.toUpperCase()}</p>
+          <h1>{title}</h1>
+          <span>{copy}</span>
+          <div className="info-detail-grid">
+            {content.sections.map(([heading, items]) => (
+              <article key={heading}>
+                <h2>{heading}</h2>
+                {items.map((item) => (
+                  <p key={item}>{item}</p>
+                ))}
+              </article>
+            ))}
+          </div>
           <button
             className="blue-pill"
             onClick={page === "privacy" ? () => onNavigate("contact") : startChat}
           >
             Talk to our team <ArrowRight />
           </button>
-        )}
-      </section>
+        </section>
+      )}
     </main>
   );
 }

@@ -178,3 +178,23 @@
 .showcase-impact aside article{min-height:192px;padding:26px}
 .showcase-impact aside span{width:82px!important;height:82px!important;background-size:74px!important;border-radius:24px!important}
 @media(max-width:700px){.ref-nav .wordmark{width:160px;margin-left:-10px}.ref-nav .brand-image{width:160px;height:68px;object-position:center 42%;transform:none}.showcase-impact aside span{width:72px!important;height:72px!important;background-size:64px!important}}
+
+/* Direct customer-support form: email is prepared for the user’s own mail client. */
+.info-page .contact-page-section{display:block;max-width:1120px;min-height:calc(100vh - 92px);padding:86px 24px 92px;text-align:center}
+.contact-page-section>span{display:block;max-width:720px;margin:0 auto}
+.contact-layout{display:grid;grid-template-columns:minmax(280px,.76fr) minmax(0,1.24fr);gap:20px;align-items:stretch;margin-top:48px;text-align:left}
+.contact-layout aside,.contact-layout form{padding:30px;background:rgba(255,255,255,.92);border:1px solid #dce9df;border-radius:22px;box-shadow:0 16px 36px rgba(35,79,52,.06)}
+.contact-layout aside{display:flex;flex-direction:column;background:linear-gradient(155deg,#effaf2,#e4f4e9)}
+.contact-layout h2{max-width:280px;margin:0;color:#1e4933;font-size:27px;letter-spacing:-.06em;line-height:1.1}
+.contact-layout ul{display:grid;gap:13px;padding:0;margin:29px 0;list-style:none;color:#557064;font-size:14px;line-height:1.4}
+.contact-layout li{display:flex;gap:10px;align-items:flex-start}.contact-layout li:before{color:#318155;content:"✓"}.contact-layout aside a{margin-top:auto;color:#1d6c44;font-size:15px;font-weight:800;text-decoration:none}
+.contact-layout form{display:grid;grid-template-columns:1fr 1fr;gap:15px}
+.contact-layout label{display:grid;gap:7px;color:#375647;font-size:12px;font-weight:800}
+.contact-layout input,.contact-layout textarea{width:100%;padding:13px 14px;color:#223a2d;background:#fbfdfb;border:1px solid #cfe1d3;border-radius:10px;font:inherit;font-size:14px;font-weight:500;outline:none;transition:border-color .2s ease,box-shadow .2s ease}
+.contact-layout textarea{min-height:122px;resize:vertical}.contact-layout input:focus,.contact-layout textarea:focus{border-color:#41865c;box-shadow:0 0 0 3px #d9f0df}.contact-form-wide{grid-column:1/-1}.contact-layout .blue-pill{justify-self:start;margin-top:2px;border:0}
+@media(max-width:760px){.info-page .contact-page-section{padding:54px 18px 68px}.contact-layout{grid-template-columns:1fr;margin-top:34px}.contact-layout aside,.contact-layout form{padding:23px}.contact-layout form{grid-template-columns:1fr}.contact-form-wide{grid-column:auto}.contact-layout .blue-pill{width:100%;justify-content:center}}
+
+/* Preserve the full feature mark and give the impact imagery a clearer medium scale. */
+.core-intelligence .core-feature-emotion .core-card-top img{width:auto!important;max-width:86%;height:88%!important;object-fit:contain!important;object-position:center!important}
+.showcase-impact aside span{width:88px!important;height:88px!important;background-size:78px!important;border-radius:25px!important}
+@media(max-width:700px){.core-intelligence .core-feature-emotion .core-card-top img{max-width:82%;height:88%!important}.showcase-impact aside span{width:84px!important;height:84px!important;background-size:74px!important}}
