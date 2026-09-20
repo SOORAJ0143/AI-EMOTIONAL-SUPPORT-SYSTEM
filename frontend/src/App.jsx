@@ -1839,6 +1839,23 @@ function AboutPage({ onHome, startChat }) {
           ))}
         </div>
       </section>
+      <section className="enterprise-team">
+        <p>OUR TEAM</p>
+        <h2>Meet our team</h2>
+        <div>
+          {[
+            ["Hadi Shaheed", "Founder, CEO"],
+            ["Ifthis", "CMO, Co-Founder"],
+            ["Fadhy", "Co-Founder"],
+          ].map(([name, role]) => (
+            <article key={name}>
+              <div className="team-photo-placeholder" aria-hidden="true" />
+              <h3>{name}</h3>
+              <span>{role}</span>
+            </article>
+          ))}
+        </div>
+      </section>
       <section className="enterprise-final">
         <p>READY TO BUILD MORE HUMAN AI EXPERIENCES?</p>
         <h2>Discover more meaningful digital experiences with HOPEMO AI.</h2>
