@@ -115,5 +115,42 @@
 /* Larger integration cards keep their entrance, then drift as a horizontal slideshow. */
 .showcase-integrations{overflow:hidden}.showcase-integrations>div{grid-template-columns:repeat(6,205px);gap:16px;width:max-content;max-width:none}.showcase-integrations>div article{min-height:145px;padding:16px;font-size:14px}.showcase-integrations>div article span{width:43px;height:43px}.showcase-integrations.is-ready>div{animation:integrations-slideshow 8.5s ease-in-out 1.15s infinite alternate;will-change:transform}@keyframes integrations-slideshow{from{transform:translateX(0)}to{transform:translateX(-104px)}}@media(max-width:760px){.showcase-integrations>div{grid-template-columns:repeat(6,170px);gap:12px}.showcase-integrations>div article{min-height:128px;font-size:12px}.showcase-integrations.is-ready>div{animation-duration:7s}}
 
+/* Clear, full-width imagery and straightforward contact paths. */
+.reference-hero h1{letter-spacing:-.055em}
+.brand-image,.enterprise-logo{object-fit:cover!important;object-position:center!important;background:#fff;border-radius:0!important}
+.ref-nav .brand-image{width:155px;height:46px}
+.enterprise-logo{width:160px;height:52px}
+.showcase-cases .audience-card{cursor:default}
+.showcase-cases .audience-card .audience-image{display:block;width:100%;height:225px;flex:0 0 225px;object-fit:cover;object-position:center;background:#eef4ef}
+.showcase-cases .audience-card .audience-image:before{display:none}
+.showcase-cases .audience-card p{min-height:auto;margin-bottom:27px}
+.showcase-cases .audience-card b{display:none}
+.showcase-impact aside span{width:64px!important;height:64px!important;background-size:52px!important;border-radius:18px!important;box-shadow:0 10px 20px rgba(32,83,54,.1)}
+.contact-mail-button{text-decoration:none}
+
+/* Phone layouts use the same card content without clipped marquees or controls. */
+@media(max-width:700px){
+  .ref-nav{top:12px;width:calc(100% - 20px);height:62px;padding:7px 8px}
+  .ref-nav .brand-image{width:142px;height:46px}
+  .ref-nav .try-button{font-size:12px}
+  .ref-nav .try-button svg{width:25px;height:25px}
+  .reference-hero{min-height:660px;padding-top:147px}
+  .reference-hero h1{font-size:clamp(48px,14vw,68px);line-height:.94;letter-spacing:-.045em}
+  .reference-hero p{max-width:340px;font-size:15px}
+  .reference-actions{flex-wrap:wrap;max-width:330px;margin-right:auto;margin-left:auto}
+  .audience-marquee{overflow:visible;mask-image:none}
+  .audience-track{display:grid;width:100%;padding:0 20px;gap:16px;animation:none!important}
+  .showcase-cases .audience-card{width:100%;min-height:0;flex:none}
+  .showcase-cases .audience-card .audience-image{height:230px;flex-basis:230px}
+  .showcase-cases .audience-card h3{margin-top:20px;font-size:24px}
+  .showcase-cases .audience-card p{margin-bottom:24px;font-size:15px}
+  .showcase-integrations{overflow:visible}
+  .showcase-integrations>div,.showcase-integrations.is-ready>div{display:grid;width:100%;grid-template-columns:repeat(2,minmax(0,1fr));padding:0;animation:none!important;transform:none!important}
+  .showcase-integrations>div article{min-height:142px;font-size:13px}
+  .showcase-impact aside span{width:58px!important;height:58px!important;background-size:46px!important}
+  .enterprise-logo{width:136px;height:46px}
+  .info-page nav .try-button{font-size:0;padding:6px}.info-page nav .try-button svg{margin:0}
+}
+
 /* Compact Core Intelligence composition, matching the supplied card rhythm. */
 .comparison-scroll-track{min-height:0}.comparison-scroll-track>.comparison-section{position:relative;top:auto;min-height:0}.core-intelligence .feature-cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));grid-template-rows:350px 285px;gap:20px;max-width:1240px}.core-intelligence .core-feature-card{min-height:0}.core-intelligence .core-feature-emotion{grid-column:1;grid-row:1}.core-intelligence .core-feature-behavior{grid-column:2;grid-row:1}.core-intelligence .core-feature-insights{grid-column:3;grid-row:1}.core-intelligence .core-feature-recovery{grid-column:1/3;grid-row:2}.core-intelligence .core-feature-alerts{grid-column:3;grid-row:2;background:#edf1f3!important}.core-intelligence .core-feature-emotion .core-card-top,.core-intelligence .core-feature-behavior .core-card-top,.core-intelligence .core-feature-insights .core-card-top{min-height:205px}.core-intelligence .core-feature-emotion .core-card-top img,.core-intelligence .core-feature-behavior .core-card-top img{width:145px;height:145px}.core-intelligence .core-feature-insights .core-card-copy{min-height:145px}.core-intelligence .core-feature-recovery{display:grid;grid-template-columns:1fr 1.12fr}.core-intelligence .core-feature-recovery .core-card-top{min-height:0;order:2}.core-intelligence .core-feature-recovery .core-card-copy{justify-content:center;min-height:0;padding:27px 32px}.core-intelligence .core-feature-recovery .core-card-copy h3{margin:0 0 9px}.core-intelligence .core-feature-alerts .core-card-top{min-height:0;flex:1;background:radial-gradient(circle at 75% 28%,#ffd7d4 0 12%,transparent 13%),linear-gradient(145deg,#f8fafb,#e0e7ea)}.core-intelligence .core-feature-alerts .core-card-top img{display:none}.core-intelligence .core-feature-alerts .core-card-top:after{content:"Signal ready";padding:12px 18px;color:#274033;background:#fff;border:1px solid #dbe2e4;border-radius:12px;box-shadow:0 8px 20px rgba(38,56,47,.12);font-size:13px;font-weight:800}.core-intelligence .core-feature-alerts .core-card-copy{min-height:105px;padding:18px 24px}.core-intelligence .core-feature-alerts .core-card-copy h3{margin:0 0 6px}.core-intelligence .core-feature-alerts .core-card-copy p{font-size:12px}.interactive-insight-card h3{max-width:530px}.interactive-insight-card .insight-line{min-height:55px}@media(max-width:1050px){.core-intelligence .feature-cards{grid-template-columns:repeat(2,minmax(0,1fr));grid-template-rows:auto}.core-intelligence .core-feature-emotion,.core-intelligence .core-feature-behavior,.core-intelligence .core-feature-insights,.core-intelligence .core-feature-alerts{grid-column:auto;grid-row:auto}.core-intelligence .core-feature-recovery{grid-column:1/-1;grid-row:auto}}@media(max-width:620px){.core-intelligence .feature-cards{display:grid;grid-template-columns:1fr}.core-intelligence .core-feature-recovery{grid-column:auto;grid-template-columns:1fr}.core-intelligence .core-feature-recovery .core-card-top{order:0;min-height:220px}.core-intelligence .core-feature-emotion,.core-intelligence .core-feature-behavior,.core-intelligence .core-feature-insights,.core-intelligence .core-feature-alerts{grid-column:auto}}

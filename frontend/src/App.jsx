@@ -821,7 +821,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
         <a className="wordmark" href="#top">
           <img
             className="brand-image front-wordmark"
-            src="/hopemo-wordmark.jpg"
+            src="/hopemo-logo.jpg"
             alt="HOPEMO — Emotionally Intelligent AI"
           />
         </a>
@@ -862,9 +862,9 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             Intelligence Platform
           </h1>
           <p>
-            Hopemo connects people with the professionals who support them —
-            turning everyday experiences and relevant signals into meaningful
-            insights for better decisions and support.
+            Turn human experiences into meaningful insights that help
+            professionals understand people, recognize changing patterns, and
+            take the right action.
           </p>
           <div className="reference-actions">
             <button className="blue-pill" onClick={startChat}>
@@ -1231,7 +1231,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             <li>Responsible AI practices</li>
             <li>Human oversight</li>
           </ul>
-          <button className="dark-pill" onClick={startChat}>
+          <button className="dark-pill" onClick={() => onNavigate("contact")}>
             Talk to us <ArrowRight />
           </button>
         </div>
@@ -1280,27 +1280,10 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             ["Care teams", "Give support teams clearer emotional context so they can deliver thoughtful, connected care.", "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=700&q=85"],
             ["Individuals", "A private space to reflect, understand patterns, and take meaningful next steps.", "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=85"],
           ]).map(([title, copy, image], index) => (
-            <article
-              className={`${title === "Education" ? "student-case " : ""}audience-card`}
-              onClick={
-                title === "Education"
-                  ? () => onNavigate("student-success")
-                  : undefined
-              }
-              key={`${title}-${index}`}
-            >
-              <div
-                className="case-art"
-                style={{
-                  backgroundImage: `linear-gradient(180deg,transparent 35%,rgba(20,48,34,.3)),url(${image})`,
-                }}
-              />
+            <article className="audience-card" key={`${title}-${index}`}>
+              <img className="case-art audience-image" src={image} alt="" />
               <h3>{title}</h3>
               <p>{copy}</p>
-              <b>
-                {title === "Education" ? "Open Student Success" : "Learn more"}{" "}
-                <ArrowRight />
-              </b>
             </article>
           ))}
           </div>
@@ -1427,7 +1410,10 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             Everything organizations and individuals need to know about Hopemo's
             human intelligence platform.
           </p>
-          <button className="dark-pill" onClick={startChat}>
+          <button
+            className="dark-pill"
+            onClick={() => onNavigate("contact")}
+          >
             Talk to our team <ArrowRight />
           </button>
         </div>
@@ -1476,8 +1462,8 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
           <div>
             <img className="footer-logo" src="/hopemo-logo.jpg" alt="HOPEMO" />
             <p>Connecting human experience with professional insight.</p>
-            <a className="footer-email" href="mailto:support@hopemo.app">
-              support@hopemo.app
+            <a className="footer-email" href="mailto:Ceo@hopemoai.in">
+              Ceo@hopemoai.in
             </a>
           </div>
           <div>
@@ -1589,9 +1575,9 @@ const pageDetails = {
     "Hopemo supports professional understanding, not professional replacement. It uses relevant signals and context to help people make more informed, human-centered decisions.",
   ],
   contact: [
-    "Contact",
-    "Let's build better human intelligence together.",
-    "Whether you are exploring Hopemo for your organization, interested in partnerships, or want to learn more about our technology and research, we would love to hear from you at support@hopemo.app.",
+    "Customer support",
+    "How can we help?",
+    "Get help with your account, platform setup, integrations, or technical questions.",
   ],
   privacy: [
     "Privacy and security",
@@ -1656,7 +1642,7 @@ function AboutPage({ onHome, startChat }) {
         </button>
         <img
           className="enterprise-logo front-wordmark"
-          src="/hopemo-wordmark.jpg"
+          src="/hopemo-logo.jpg"
           alt="HOPEMO — Emotionally Intelligent AI"
         />
         <div>
@@ -2026,20 +2012,10 @@ const infoContent = {
   contact: {
     sections: [
       [
-        "How we can help",
+        "Customer support",
         [
-          "Explore Hopemo for your organization.",
-          "Discuss partnerships and integrations.",
-          "Connect with our team.",
-          "Learn about our technology and research.",
-        ],
-      ],
-      [
-        "Contact channels",
-        [
-          "Organizations — support@hopemo.app",
-          "Partnerships — partnerships@hopemo.ai",
-          "Research and collaboration — research@hopemo.ai",
+          "Get help with your account, platform setup, integrations, or technical questions.",
+          "Ceo@hopemoai.in",
         ],
       ],
     ],
@@ -2078,7 +2054,7 @@ function InfoPage({ page, onHome, startChat }) {
         </button>
         <img
           className="enterprise-logo front-wordmark"
-          src="/hopemo-wordmark.jpg"
+          src="/hopemo-logo.jpg"
           alt="HOPEMO — Emotionally Intelligent AI"
         />
         <button className="try-button" onClick={startChat}>
@@ -2099,9 +2075,15 @@ function InfoPage({ page, onHome, startChat }) {
             </article>
           ))}
         </div>
-        <button className="blue-pill" onClick={startChat}>
-          Talk to our team <ArrowRight />
-        </button>
+        {page === "contact" ? (
+          <a className="blue-pill contact-mail-button" href="mailto:Ceo@hopemoai.in">
+            Email customer support <ArrowRight />
+          </a>
+        ) : (
+          <button className="blue-pill" onClick={startChat}>
+            Talk to our team <ArrowRight />
+          </button>
+        )}
       </section>
     </main>
   );
@@ -2168,7 +2150,7 @@ function MentalHealthReport({ onHome }) {
         </button>
         <img
           className="enterprise-logo front-wordmark"
-          src="/hopemo-wordmark.jpg"
+          src="/hopemo-logo.jpg"
           alt="HOPEMO"
         />
         <span>Daily wellbeing check-in</span>
