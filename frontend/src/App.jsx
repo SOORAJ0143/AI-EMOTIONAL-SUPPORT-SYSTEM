@@ -1036,7 +1036,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               Bot,
               "Emotion-Aware Intelligence",
               "Recognize meaningful emotional signals across conversations and interactions, giving professionals additional context.",
-              "/home-visuals/security-shield.jpeg",
+              "/home-visuals/security-shield-transparent.png",
               "emotion",
             ],
             [
