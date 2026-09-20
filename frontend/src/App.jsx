@@ -1673,7 +1673,7 @@ function AboutPage({ onHome, startChat }) {
     ],
   ];
   return (
-    <main className="enterprise-page">
+    <main className="enterprise-page about-reference-page">
       <nav>
         <button className="page-back" onClick={onHome}>
           <ArrowLeft /> Back
@@ -1707,8 +1707,8 @@ function AboutPage({ onHome, startChat }) {
           </button>
         </div>
       </nav>
-      <section className="enterprise-hero">
-        <p>HUMAN-CENTERED EMOTION AI</p>
+      <section className="enterprise-hero about-reference-hero">
+        <p className="about-chip">ABOUT HOPEMO</p>
         <h1>
           Human-Centered AI
           <br />
@@ -1718,35 +1718,26 @@ function AboutPage({ onHome, startChat }) {
           Build meaningful conversations, improve wellbeing, and deliver
           intelligent experiences with HOPEMO AI's Emotion AI platform.
         </span>
-        <button className="blue-pill" onClick={startChat}>
-          Explore platform <ArrowRight />
-        </button>
-        <div>
-          {[
-            ["5,000+", "Users experiencing emotionally intelligent AI"],
-            ["20,000+", "Emotion and conversation data assets"],
-            ["Since 2022", "Researching Human-Centered AI"],
-          ].map(([stat, label]) => (
-            <article key={stat}>
-              <strong>{stat}</strong>
-              <small>{label}</small>
-            </article>
-          ))}
-        </div>
       </section>
       <section className="enterprise-meadow" aria-label="A calm HOPEMO environment">
         <img src="/home-visuals/about-meadow.png" alt="A calm meadow with wildflowers" />
         <span>HOPEMO AI</span>
       </section>
-      <section className="enterprise-intro">
-        <p>INTELLIGENCE THAT UNDERSTANDS EVERY CONVERSATION</p>
-        <h2>Beyond traditional chatbots.</h2>
-        <span>
+      <section className="enterprise-intro about-mission-values">
+        <div className="about-mission">
+          <h2>Our mission</h2>
+          <p>
           HOPEMO AI understands emotional context, conversation patterns, and
           human behavior to deliver more meaningful interactions across
           communication, customer experience, employee engagement, education,
           and healthcare support.
-        </span>
+          </p>
+          <button className="try-button" onClick={startChat}>
+            Explore the platform <ArrowRight />
+          </button>
+        </div>
+        <div className="about-values">
+          <h2>Our values</h2>
         <ul>
           {[
             "Emotion-aware conversations",
@@ -1758,9 +1749,23 @@ function AboutPage({ onHome, startChat }) {
             <li key={item}>{item}</li>
           ))}
         </ul>
-        <button className="outline-pill" onClick={startChat}>
-          Discover HOPEMO AI <ArrowRight />
-        </button>
+        </div>
+      </section>
+      <section className="about-journey">
+        <h2>How HOPEMO started</h2>
+        <article>
+          <header>
+            <strong>Our journey</strong>
+            <span>A note from the founder</span>
+          </header>
+          <div>
+            <p>We are building an intelligence layer that helps psychologists, HR teams, educators, and organizations understand people with greater context and clarity.</p>
+            <p>HOPEMO AI helps organizations create more meaningful digital interactions across every important touchpoint, while keeping human judgment central.</p>
+            <p>Our work is grounded in responsible, privacy-first intelligence that supports people rather than replacing them.</p>
+            <b>Hadi Shaheed</b>
+            <small>Founder, CEO</small>
+          </div>
+        </article>
       </section>
       <section className="enterprise-features" id="enterprise-features">
         <p>EVERYTHING INSIDE HOPEMO AI</p>
@@ -1775,17 +1780,17 @@ function AboutPage({ onHome, startChat }) {
           ))}
         </div>
       </section>
-      <section className="enterprise-use" id="enterprise-use-cases">
+      <section className="enterprise-use about-impact" id="enterprise-use-cases">
         <div>
-          <p>BUILD BETTER EXPERIENCES WITH HOPEMO AI</p>
-          <h2>Support customers, students, employees, and patients.</h2>
+          <p>OUR IMPACT IN NUMBERS</p>
+          <h2>Human insight, made useful.</h2>
           <span>
             HOPEMO AI helps organizations create more meaningful digital
             interactions across every important touchpoint.
           </span>
-          <button className="blue-pill" onClick={startChat}>
-            Request a demo <ArrowRight />
-          </button>
+          <div className="about-impact-metrics">
+            {["5,000+", "20,000+", "Since 2022"].map((item) => <strong key={item}>{item}</strong>)}
+          </div>
         </div>
         <aside>
           {[
