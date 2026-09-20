@@ -1537,29 +1537,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             © {new Date().getFullYear()} HOPEMO. Built for more human
             decisions.
           </span>
-          <div>
-            <a
-              href="https://www.instagram.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              ◎
-            </a>
-            <a
-              href="https://www.linkedin.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              in
-            </a>
-            <a
-              href="https://www.facebook.com/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              f
-            </a>
-          </div>
+          <SocialLinks />
         </div>
       </footer>
     </main>
@@ -2299,8 +2277,48 @@ function PageClosing({ onHome, onNavigate, startChat }) {
           <button onClick={() => navigate("contact")}>Contact</button>
           <button onClick={() => navigate("privacy")}>Privacy Policy</button>
         </div>
+        <SocialLinks className="page-closing-socials" />
       </footer>
     </section>
+  );
+}
+
+function SocialLinks({ className = "" }) {
+  return (
+    <div className={`social-links ${className}`.trim()}>
+      <a
+        href="https://wa.me/916235527720?text=Hi%2C%20I%20would%20like%20to%20know%20more"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="WhatsApp"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M20.5 3.5A11.8 11.8 0 0 0 2.3 17.7L1 23l5.5-1.3A11.8 11.8 0 1 0 20.5 3.5Zm-8.5 18a9.7 9.7 0 0 1-4.9-1.3l-.4-.2-3.3.8.8-3.2-.2-.4A9.8 9.8 0 1 1 12 21.5Zm5.4-7.3c-.3-.2-1.7-.8-2-.9-.3-.1-.5-.2-.7.2l-.8 1c-.2.2-.3.2-.6.1a8 8 0 0 1-2.4-1.5 9 9 0 0 1-1.7-2.1c-.2-.3 0-.4.1-.6l.5-.6.2-.5c.1-.2 0-.4 0-.6l-.9-2.1c-.2-.5-.5-.4-.7-.4h-.6c-.2 0-.6.1-.9.4s-1.2 1.2-1.2 2.9 1.2 3.3 1.4 3.6a11.5 11.5 0 0 0 4.4 4.1c.6.3 1.1.5 1.5.6.6.2 1.2.2 1.6.1.5-.1 1.7-.7 1.9-1.4.2-.7.2-1.2.1-1.4-.1-.1-.3-.2-.6-.4Z" />
+        </svg>
+      </a>
+      <a
+        href="https://www.instagram.com/hopemo.ai?stkn=YmUxYzY4YzA5MWp4"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="Instagram"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <rect x="3" y="3" width="18" height="18" rx="5" />
+          <circle cx="12" cy="12" r="4" />
+          <circle cx="17.5" cy="6.5" r="1" className="social-dot" />
+        </svg>
+      </a>
+      <a
+        href="https://www.linkedin.com/in/hadi-shaheed?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app"
+        target="_blank"
+        rel="noreferrer"
+        aria-label="LinkedIn"
+      >
+        <svg viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M6.2 8.2H3.1V21h3.1V8.2ZM4.7 3A1.8 1.8 0 1 0 4.7 6.6 1.8 1.8 0 0 0 4.7 3ZM21 13.7c0-3.9-2.1-5.7-4.9-5.7-2.3 0-3.3 1.3-3.8 2.2V8.2H9.2V21h3.1v-6.3c0-1.7.3-3.3 2.4-3.3 2 0 2 1.9 2 3.4V21H21v-7.3Z" />
+        </svg>
+      </a>
+    </div>
   );
 }
 
