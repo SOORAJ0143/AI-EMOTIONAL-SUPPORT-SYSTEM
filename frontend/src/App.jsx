@@ -1060,22 +1060,18 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "/home-visuals/recovery-plans.png",
               "recovery",
             ],
-          ].map(([Icon, title, text, image, tone], index) => (
+          ].map(([, title, text, image, tone], index) => (
             <article
               className={`core-feature-card core-feature-${tone}`}
               style={{ "--feature-delay": `${index * 80}ms` }}
               key={title}
             >
               <div className="core-card-top">
-                <span className="core-feature-icon">
-                  <Icon />
-                </span>
                 <img src={image} alt="" />
               </div>
               <div className="core-card-copy">
                 <h3>{title}</h3>
                 <p>{text}</p>
-                {tone !== "recovery" && <ArrowRight />}
               </div>
             </article>
           ))}
@@ -2024,21 +2020,64 @@ const infoContent = {
   privacy: {
     sections: [
       [
-        "Responsible intelligence by design",
+        "Information we collect",
         [
-          "Privacy-first architecture",
-          "Controlled access",
-          "Secure data handling",
-          "Responsible AI practices",
-          "Human oversight",
+          "Personal information such as your name, email address, phone number, organization details, and account information when you create an account, contact us, or use our services.",
+          "Emotional and behavioural information that you choose to provide through the platform, including experiences, interactions, engagement, feedback, or wellbeing-related information.",
+          "Usage, device, browser, and approximate-location data that helps us operate, secure, and improve the platform.",
+          "Organization and integration data needed to deliver connected workflows and services.",
         ],
       ],
       [
-        "How we use intelligence",
+        "How we use your information",
         [
+          "Operate and personalize Hopemo, generate relevant insights, provide customer and technical support, and communicate important service updates.",
+          "Maintain platform security and reliability, investigate misuse or security incidents, and meet applicable legal obligations.",
+          "Improve our technology and understand platform usage without selling personal information.",
+        ],
+      ],
+      [
+        "Emotional intelligence and AI processing",
+        [
+          "Hopemo uses artificial intelligence and related technologies to help identify patterns, organize information, and generate contextual insights.",
           "AI-generated insights provide additional context; they are not definitive judgments about an individual.",
           "The relevant professional or organization remains responsible for decisions and actions involving individuals.",
-          "Hopemo does not sell personal information.",
+        ],
+      ],
+      [
+        "Data security and sharing",
+        [
+          "We use reasonable measures such as encryption, access controls, secure infrastructure, authentication, monitoring, and organizational safeguards to protect information.",
+          "Information may be shared with trusted service providers when needed to operate, maintain, secure, or support Hopemo, or when required by law.",
+          "We do not sell personal information.",
+        ],
+      ],
+      [
+        "Retention and your rights",
+        [
+          "We retain information only as long as reasonably necessary to provide services, improve the platform, meet legal obligations, resolve disputes, and protect our services.",
+          "Depending on your location and applicable law, you may have rights to access, correct, delete, restrict, object to certain processing, request a copy of information, or withdraw consent where applicable.",
+        ],
+      ],
+      [
+        "Cookies and third-party services",
+        [
+          "Hopemo may use cookies and similar technologies to operate the website, remember preferences, understand usage, improve performance, and maintain security.",
+          "Trusted third-party providers may support infrastructure, analytics, communications, security, authentication, integrations, and other operational purposes under appropriate safeguards.",
+        ],
+      ],
+      [
+        "Children, international processing, and updates",
+        [
+          "Hopemo is not intended to knowingly collect personal information from children except where a service is specifically designed for an educational institution or organization with appropriate authorization and safeguards.",
+          "Information may be processed or stored in countries other than your own where required safeguards apply.",
+          "We may update this policy as services, legal requirements, or our practices evolve. The updated date will appear at the top of this page.",
+        ],
+      ],
+      [
+        "Contact us",
+        [
+          "For questions about this Privacy Policy or how Hopemo processes information, contact Customer Support at Ceo@hopemoai.in.",
         ],
       ],
     ],
