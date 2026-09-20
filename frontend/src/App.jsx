@@ -1067,10 +1067,13 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               key={title}
             >
               <div className="core-card-top">
+                {tone === "emotion" && (
+                  <h3 className="emotion-card-label">Emotion Recognition AI</h3>
+                )}
                 <img src={image} alt="" />
               </div>
               <div className="core-card-copy">
-                <h3>{title}</h3>
+                {tone !== "emotion" && <h3>{title}</h3>}
                 <p>{text}</p>
               </div>
             </article>
