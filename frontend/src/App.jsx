@@ -1241,17 +1241,17 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
           {[
             [
               "Psychology",
-              "Client ↔ Psychologist. Help psychologists understand what happens between appointments through continuous context and structured insights.",
+              "Client and psychologist. Help psychologists understand what happens between appointments through continuous context and structured insights.",
               "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?auto=format&fit=crop&w=700&q=85",
             ],
             [
               "Education",
-              "Student ↔ Institution. Help institutions understand student engagement and wellbeing beyond the classroom.",
+              "Student and institution. Help institutions understand student engagement and wellbeing beyond the classroom.",
               "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=700&q=85",
             ],
             [
               "Workplace",
-              "Employee ↔ HR. Give HR teams a clearer view of changing employee experiences beyond periodic feedback.",
+              "Employee and HR. Give HR teams a clearer view of changing employee experiences beyond periodic feedback.",
               "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=700&q=85",
             ],
             [
@@ -1270,9 +1270,9 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
               "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=85",
             ],
           ].concat([
-            ["Psychology", "Client ↔ Psychologist. Help psychologists understand what happens between appointments through continuous context and structured insights.", "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?auto=format&fit=crop&w=700&q=85"],
-            ["Education", "Student ↔ Institution. Help institutions understand student engagement and wellbeing beyond the classroom.", "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=700&q=85"],
-            ["Workplace", "Employee ↔ HR. Give HR teams a clearer view of changing employee experiences beyond periodic feedback.", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=700&q=85"],
+            ["Psychology", "Client and psychologist. Help psychologists understand what happens between appointments through continuous context and structured insights.", "https://images.unsplash.com/photo-1525134479668-1bee5c7c6845?auto=format&fit=crop&w=700&q=85"],
+            ["Education", "Student and institution. Help institutions understand student engagement and wellbeing beyond the classroom.", "https://images.unsplash.com/photo-1544717305-2782549b5136?auto=format&fit=crop&w=700&q=85"],
+            ["Workplace", "Employee and HR. Give HR teams a clearer view of changing employee experiences beyond periodic feedback.", "https://images.unsplash.com/photo-1551836022-d5d88e9218df?auto=format&fit=crop&w=700&q=85"],
             ["Organizations", "Build emotional intelligence into the systems, workflows, and decisions of people-focused organizations.", "https://images.unsplash.com/photo-1556761175-b413da4baf72?auto=format&fit=crop&w=700&q=85"],
             ["Care teams", "Give support teams clearer emotional context so they can deliver thoughtful, connected care.", "https://images.unsplash.com/photo-1576091160399-112ba8d25d1d?auto=format&fit=crop&w=700&q=85"],
             ["Individuals", "A private space to reflect, understand patterns, and take meaningful next steps.", "https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=700&q=85"],
