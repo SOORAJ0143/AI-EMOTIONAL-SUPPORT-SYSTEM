@@ -140,6 +140,7 @@
   .reference-actions{flex-wrap:wrap;max-width:330px;margin-right:auto;margin-left:auto}
   .audience-marquee{overflow:visible;mask-image:none}
   .audience-track{display:grid;width:100%;padding:0 20px;gap:16px;animation:none!important}
+  .audience-track .audience-card:nth-child(n+7){display:none}
   .showcase-cases .audience-card{width:100%;min-height:0;flex:none}
   .showcase-cases .audience-card .audience-image{height:230px;flex-basis:230px}
   .showcase-cases .audience-card h3{margin-top:20px;font-size:24px}
@@ -150,6 +151,36 @@
   .showcase-impact aside span{width:58px!important;height:58px!important;background-size:46px!important}
   .enterprise-logo{width:136px;height:46px}
   .info-page nav .try-button{font-size:0;padding:6px}.info-page nav .try-button svg{margin:0}
+}
+
+/* Mobile chat retains the desktop controls in an easy-to-open drawer. */
+.mobile-sidebar-heading,.mobile-sidebar-scrim,.mobile-chat-menu{display:none}
+@media(max-width:760px){
+  .workspace .chat-sidebar{position:fixed;z-index:31;top:0;bottom:0;left:0;display:flex;width:min(320px,88vw);padding:18px 14px;overflow-y:auto;box-shadow:18px 0 48px rgba(19,42,28,.2);transform:translateX(-105%);transition:transform .24s ease}
+  .workspace.mobile-sidebar-open .chat-sidebar{transform:translateX(0)}
+  .mobile-sidebar-scrim{position:fixed;z-index:30;inset:0;display:block;width:100%;height:100%;padding:0;background:rgba(18,32,25,.34);opacity:0;pointer-events:none;transition:opacity .24s ease}
+  .workspace.mobile-sidebar-open .mobile-sidebar-scrim{opacity:1;pointer-events:auto}
+  .mobile-sidebar-heading{display:flex;align-items:center;justify-content:space-between;margin:0 8px 16px;color:#284333;font-size:14px;font-weight:800}
+  .mobile-sidebar-heading button{display:grid;place-items:center;width:36px;height:36px;color:#40564a;background:#edf4ee;border-radius:10px}
+  .mobile-sidebar-heading svg{width:19px}
+  .chat-back{display:flex;margin-bottom:12px}
+  .workspace-brand{margin-bottom:12px}
+  .new-chat{margin:12px 0 20px}
+  .history-list{max-height:42vh}
+  .sidebar-footer{margin-top:18px}
+  .mobile-chat-menu{display:grid}
+  .workspace-header>div:last-child{gap:6px}
+  .header-action.mobile-chat-menu{padding:8px}
+  .theme-dark .mobile-sidebar-heading{color:#dce9df}
+  .theme-dark .mobile-sidebar-heading button{color:#dce9df;background:#2a3e30}
+}
+
+/* Four ecosystem cards remain readable in a two-column phone layout. */
+@media(max-width:760px){
+  .stats-section>div{gap:12px}
+  .stats-section>div article{min-width:0;padding:20px 12px}
+  .stats-section>div article strong{font-size:clamp(18px,5.7vw,23px);letter-spacing:-1px;line-height:1.05;overflow-wrap:anywhere}
+  .stats-section>div article span{font-size:11px;line-height:1.45}
 }
 
 /* Uncropped supplied mark and image-led feature cards. */
@@ -228,3 +259,18 @@
 .enterprise-team h3{margin:0;color:#22342a;font-size:20px;letter-spacing:-.045em}
 .enterprise-team article span{margin-top:5px;color:#68786e;font-size:13px;font-weight:700}
 @media(max-width:760px){.enterprise-team{padding:78px 22px}.enterprise-team>div{gap:35px;margin-top:38px}.team-photo-placeholder{width:126px;height:126px}.enterprise-team h3{font-size:18px}}@media(max-width:470px){.enterprise-team>div{grid-template-columns:1fr}.team-photo-placeholder{width:138px;height:138px}}
+
+/* Phone navigation mirrors the compact brand-and-menu reference. */
+.mobile-menu-toggle{display:none}
+@media(max-width:700px){
+  .scroll-landing .ref-nav,.ref-nav{height:86px;padding:10px 15px;gap:0;border-radius:20px}
+  .ref-nav .wordmark{width:170px;margin:0}
+  .ref-nav .brand-image{width:170px;height:64px;object-fit:cover!important;object-position:center 42%;transform:none}
+  .ref-nav>.try-button{display:none}
+  .mobile-menu-toggle{display:grid;place-items:center;flex:0 0 58px;width:58px;height:58px;color:#fff;background:#242426;border-radius:50%;box-shadow:0 7px 16px rgba(16,21,18,.23)}
+  .mobile-menu-toggle svg{width:30px;height:30px;stroke-width:2.4}
+  .ref-nav .ref-nav-links{position:absolute;top:calc(100% + 12px);right:0;left:0;display:grid!important;gap:0;padding:12px;background:#fff;border:1px solid #dce8e0;border-radius:18px;box-shadow:0 22px 48px rgba(28,55,40,.2);opacity:0;pointer-events:none;transform:translateY(-10px);transition:opacity .2s ease,transform .2s ease}
+  .ref-nav .ref-nav-links a{padding:14px 16px;color:#31463a!important;border-radius:10px;font-size:17px!important;text-align:left}
+  .ref-nav .ref-nav-links a:hover{background:#eef6f0}
+  .ref-nav.mobile-menu-open .ref-nav-links{opacity:1;pointer-events:auto;transform:translateY(0)}
+}

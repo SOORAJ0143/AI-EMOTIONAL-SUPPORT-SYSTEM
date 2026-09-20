@@ -341,6 +341,7 @@ function ChatScreen({
     () => localStorage.getItem("hopemo_theme") === "dark",
   );
   const [showInsights, setShowInsights] = useState(false);
+  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false);
   const [currentRisk, setCurrentRisk] = useState("low");
   const bottomRef = useRef(null);
   const greeting =
@@ -502,8 +503,26 @@ function ChatScreen({
         .join(" ")
     : "0,70 25,58 50,67 75,38 100,45";
   return (
-    <main className={`workspace ${dark ? "theme-dark" : ""}`}>
+    <main
+      className={`workspace ${dark ? "theme-dark" : ""} ${mobileSidebarOpen ? "mobile-sidebar-open" : ""}`}
+    >
+      <button
+        className="mobile-sidebar-scrim"
+        type="button"
+        aria-label="Close chat menu"
+        onClick={() => setMobileSidebarOpen(false)}
+      />
       <aside className="chat-sidebar">
+        <div className="mobile-sidebar-heading">
+          <span>Chat menu</span>
+          <button
+            type="button"
+            aria-label="Close chat menu"
+            onClick={() => setMobileSidebarOpen(false)}
+          >
+            <X />
+          </button>
+        </div>
         <button className="chat-back" onClick={onHome}>
           <ArrowLeft /> Back to home
         </button>
@@ -591,6 +610,15 @@ function ChatScreen({
               aria-label="Back to home"
             >
               <ArrowLeft />
+            </button>
+            <button
+              className="header-action mobile-chat-menu"
+              type="button"
+              onClick={() => setMobileSidebarOpen(true)}
+              aria-label="Open chat menu"
+              aria-expanded={mobileSidebarOpen}
+            >
+              <Menu />
             </button>
           </div>
         </header>
@@ -691,6 +719,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
   const comparisonScrollRef = useRef(null);
   const integrationsRef = useRef(null);
   const impactRef = useRef(null);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [comparisonMode, setComparisonMode] = useState("before");
   const [journeyStep, setJourneyStep] = useState(0);
   const [activeInsight, setActiveInsight] = useState(0);
@@ -818,7 +847,7 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
   }, []);
   return (
     <main ref={landingRef} className="landing scroll-landing">
-      <nav className="ref-nav">
+      <nav className={`ref-nav ${mobileMenuOpen ? "mobile-menu-open" : ""}`}>
         <a className="wordmark" href="#top">
           <img
             className="brand-image front-wordmark"
@@ -826,11 +855,11 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             alt="HOPEMO — Emotionally Intelligent AI"
           />
         </a>
-        <div>
-          <a href="#products">Products</a>
-          <a href="#features">Features</a>
-          <a href="#showcase-use-cases">Use Cases</a>
-          <a href="#pricing">Pricing</a>
+        <div className="ref-nav-links">
+          <a href="#products" onClick={() => setMobileMenuOpen(false)}>Products</a>
+          <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
+          <a href="#showcase-use-cases" onClick={() => setMobileMenuOpen(false)}>Use Cases</a>
+          <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
         </div>
         {token ? (
           <button className="try-button" onClick={logout}>
@@ -841,6 +870,15 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             Explore platform <ArrowRight />
           </button>
         )}
+        <button
+          className="mobile-menu-toggle"
+          type="button"
+          aria-label={mobileMenuOpen ? "Close navigation menu" : "Open navigation menu"}
+          aria-expanded={mobileMenuOpen}
+          onClick={() => setMobileMenuOpen((open) => !open)}
+        >
+          {mobileMenuOpen ? <X /> : <Menu />}
+        </button>
       </nav>
       <section
         className="reference-hero"
@@ -2475,6 +2513,8 @@ function HopemoApp() {
   const [screen, setScreen] = useState("home");
   const [authOpen, setAuthOpen] = useState(false);
   const [infoPage, setInfoPage] = useState(infoPageFromAddress);
+  const landingScrollPosition = useRef(0);
+  const returnToLanding = useRef(false);
   const [token, setToken] = useState(
     localStorage.getItem("hopemo_access_token") || "",
   );
@@ -2485,7 +2525,14 @@ function HopemoApp() {
       return null;
     }
   });
+  function rememberLandingPosition() {
+    if (screen === "home" && !infoPage) {
+      landingScrollPosition.current = window.scrollY;
+      returnToLanding.current = true;
+    }
+  }
   function startChat() {
+    rememberLandingPosition();
     setInfoPage("");
     setScreen("chat");
   }
@@ -2494,6 +2541,7 @@ function HopemoApp() {
       setAuthOpen(true);
       return;
     }
+    rememberLandingPosition();
     setInfoPage("");
     setScreen("student");
   }
@@ -2524,6 +2572,10 @@ function HopemoApp() {
   }
 
   function navigateToInfoPage(page) {
+    const returningToLanding = !page && Boolean(infoPage);
+    if (page && !infoPage && screen === "home") {
+      landingScrollPosition.current = window.scrollY;
+    }
     const nextHash = page ? `#/${page}` : "";
     if (window.location.hash !== nextHash) {
       window.history.pushState(
@@ -2534,20 +2586,41 @@ function HopemoApp() {
     }
     setInfoPage(page);
     setScreen("home");
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    if (returningToLanding) {
+      window.requestAnimationFrame(() =>
+        window.scrollTo({ top: landingScrollPosition.current, behavior: "auto" }),
+      );
+    } else {
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
   }
 
   useEffect(() => {
     const restoreFromBrowserHistory = () => {
-      setInfoPage(infoPageFromAddress());
+      const nextPage = infoPageFromAddress();
+      setInfoPage(nextPage);
       setScreen("home");
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      window.requestAnimationFrame(() =>
+        window.scrollTo({
+          top: nextPage ? 0 : landingScrollPosition.current,
+          behavior: "auto",
+        }),
+      );
     };
     window.addEventListener("popstate", restoreFromBrowserHistory);
     return () => window.removeEventListener("popstate", restoreFromBrowserHistory);
   }, []);
 
   const goHome = () => {
+    if (returnToLanding.current) {
+      returnToLanding.current = false;
+      setInfoPage("");
+      setScreen("home");
+      window.requestAnimationFrame(() =>
+        window.scrollTo({ top: landingScrollPosition.current, behavior: "auto" }),
+      );
+      return;
+    }
     navigateToInfoPage("");
   };
   return (
