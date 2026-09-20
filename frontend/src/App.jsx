@@ -794,11 +794,12 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
     const updateComparison = () => {
       frame = 0;
       const track = comparisonScrollRef.current;
-      if (!track || window.innerWidth <= 760) return;
+      if (!track) return;
       const bounds = track.getBoundingClientRect();
       const distance = Math.max(1, bounds.height - window.innerHeight);
       const progress = Math.min(1, Math.max(0, -bounds.top / distance));
-      const nextMode = progress >= 0.5 ? "after" : "before";
+      const switchAt = window.innerWidth <= 760 ? 0.28 : 0.5;
+      const nextMode = progress >= switchAt ? "after" : "before";
       setComparisonMode((current) =>
         current === nextMode ? current : nextMode,
       );
