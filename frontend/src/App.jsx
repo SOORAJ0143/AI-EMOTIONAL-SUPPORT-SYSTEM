@@ -1639,7 +1639,7 @@ function infoPageFromAddress() {
   return infoPageNames.has(page) ? page : "";
 }
 
-function AboutPage({ onHome, startChat }) {
+function AboutPage({ onHome, startChat, onNavigate }) {
   const features = [
     [
       Brain,
@@ -1687,7 +1687,7 @@ function AboutPage({ onHome, startChat }) {
           <button
             onClick={() =>
               document
-                .querySelector("#enterprise-features")
+                .querySelector("#enterprise-insights")
                 ?.scrollIntoView({ behavior: "smooth" })
             }
           >
@@ -1767,17 +1767,29 @@ function AboutPage({ onHome, startChat }) {
           </div>
         </article>
       </section>
-      <section className="enterprise-features" id="enterprise-features">
-        <p>EVERYTHING INSIDE HOPEMO AI</p>
-        <h2>Built for more human digital experiences.</h2>
+      <section className="enterprise-team about-reference-team">
+        <p>OUR TEAM</p>
+        <h2>Meet our team</h2>
         <div>
-          {features.map(([Icon, title, copy]) => (
-            <article key={title}>
-              <Icon />
-              <h3>{title}</h3>
-              <span>{copy}</span>
+          {[
+            ["Hadi Shaheed", "Founder, CEO"],
+            ["Ifthis", "CMO, Co-Founder"],
+            ["Fadhy", "Co-Founder"],
+          ].map(([name, role]) => (
+            <article key={name}>
+              <div className="team-photo-placeholder" aria-hidden="true" />
+              <h3>{name}</h3>
+              <span>{role}</span>
             </article>
           ))}
+        </div>
+      </section>
+      <section className="about-trust-panel">
+        <strong>Your data is protected<br />at every level</strong>
+        <div aria-label="Security standards">
+          <span>SOC2<br /><small>TYPE 2</small></span>
+          <span>ISO<br /><small>27001</small></span>
+          <span>GDPR<br /><small>READY</small></span>
         </div>
       </section>
       <section className="enterprise-use about-impact" id="enterprise-use-cases">
@@ -1833,28 +1845,6 @@ function AboutPage({ onHome, startChat }) {
           ))}
         </div>
       </section>
-      <section className="enterprise-integrations">
-        <p>INTEGRATES WITH YOUR EXISTING WORKFLOW</p>
-        <h2>Fits the systems you already use.</h2>
-        <span>
-          Introduce emotionally intelligent AI without disrupting your
-          operations.
-        </span>
-        <div>
-          {[
-            "Websites",
-            "Mobile applications",
-            "Customer support platforms",
-            "Healthcare systems",
-            "Learning management systems",
-            "CRM platforms",
-            "Enterprise applications",
-            "APIs and custom integrations",
-          ].map((item) => (
-            <article key={item}>{item}</article>
-          ))}
-        </div>
-      </section>
       <section className="enterprise-why">
         <p>WHY CHOOSE HOPEMO AI?</p>
         <h2>Human-centered. Enterprise ready. Responsible by design.</h2>
@@ -1882,39 +1872,7 @@ function AboutPage({ onHome, startChat }) {
           ))}
         </div>
       </section>
-      <section className="enterprise-team">
-        <p>OUR TEAM</p>
-        <h2>Meet our team</h2>
-        <div>
-          {[
-            ["Hadi Shaheed", "Founder, CEO"],
-            ["Ifthis", "CMO, Co-Founder"],
-            ["Fadhy", "Co-Founder"],
-          ].map(([name, role]) => (
-            <article key={name}>
-              <div className="team-photo-placeholder" aria-hidden="true" />
-              <h3>{name}</h3>
-              <span>{role}</span>
-            </article>
-          ))}
-        </div>
-      </section>
-      <section className="enterprise-final">
-        <p>READY TO BUILD MORE HUMAN AI EXPERIENCES?</p>
-        <h2>Discover more meaningful digital experiences with HOPEMO AI.</h2>
-        <span>
-          Improve communication, engagement, and wellbeing with an emotionally
-          intelligent AI platform.
-        </span>
-        <div>
-          <button className="blue-pill" onClick={startChat}>
-            Get started <ArrowRight />
-          </button>
-          <button className="white-pill" onClick={startChat}>
-            Request a demo
-          </button>
-        </div>
-      </section>
+      <PageClosing onHome={onHome} onNavigate={onNavigate} startChat={startChat} />
     </main>
   );
 }
@@ -2299,7 +2257,58 @@ function InfoPage({ page, onHome, startChat, onNavigate }) {
           </button>
         </section>
       )}
+      <PageClosing onHome={onHome} onNavigate={onNavigate} startChat={startChat} />
     </main>
+  );
+}
+
+function PageClosing({ onHome, onNavigate, startChat }) {
+  const navigate = (page) => onNavigate?.(page);
+  return (
+    <section className="page-closing">
+      <div className="page-closing-cta">
+        <p>READY TO BUILD MORE HUMAN AI EXPERIENCES?</p>
+        <h2>Discover more meaningful digital experiences with HOPEMO AI.</h2>
+        <span>
+          Improve communication, engagement, and wellbeing with an emotionally
+          intelligent AI platform.
+        </span>
+        <div>
+          <button className="blue-pill" onClick={startChat}>
+            Get started <ArrowRight />
+          </button>
+          <button className="white-pill" onClick={() => navigate("demo")}>
+            Request a demo
+          </button>
+        </div>
+      </div>
+      <footer className="page-closing-footer">
+        <div>
+          <button className="page-closing-logo" onClick={onHome} aria-label="Back to home">
+            <img src="/hopemo-logo.jpg" alt="HOPEMO — Emotionally Intelligent AI" />
+          </button>
+          <p>A more connected view of human experience.</p>
+          <a href="mailto:Ceo@hopemoai.in">Ceo@hopemoai.in</a>
+        </div>
+        <div>
+          <h3>Quick links</h3>
+          <button onClick={() => navigate("features")}>Features</button>
+          <button onClick={() => navigate("about")}>How it works</button>
+          <button onClick={() => navigate("pricing")}>Pricing</button>
+        </div>
+        <div>
+          <h3>Pages</h3>
+          <button onClick={() => navigate("about")}>About</button>
+          <button onClick={() => navigate("blog")}>Blog</button>
+          <button onClick={() => navigate("waitlist")}>Waitlist</button>
+        </div>
+        <div>
+          <h3>Support</h3>
+          <button onClick={() => navigate("contact")}>Contact</button>
+          <button onClick={() => navigate("privacy")}>Privacy Policy</button>
+        </div>
+      </footer>
+    </section>
   );
 }
 
@@ -2671,7 +2680,11 @@ function HopemoApp() {
       ) : infoPage === "mental-report" ? (
         <MentalHealthReport onHome={goHome} />
       ) : infoPage === "about" ? (
-        <AboutPage onHome={goHome} startChat={startChat} />
+        <AboutPage
+          onHome={goHome}
+          startChat={startChat}
+          onNavigate={navigateToInfoPage}
+        />
       ) : infoPage ? (
         <InfoPage
           page={infoPage}
