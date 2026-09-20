@@ -590,14 +590,6 @@ function ChatScreen({
                 <BookOpen /> My plan
               </button>
             )}
-            <a
-              className="header-action stress-relief"
-              href="https://mindful-room-builder.lovable.app/"
-              target="_blank"
-              rel="noreferrer"
-            >
-              <Heart /> Stress relief
-            </a>
             <button
               className="header-action"
               onClick={() => setShowInsights(!showInsights)}
@@ -856,10 +848,9 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
           />
         </a>
         <div className="ref-nav-links">
-          <a href="#products" onClick={() => setMobileMenuOpen(false)}>Products</a>
+          <button onClick={() => { setMobileMenuOpen(false); onNavigate("products"); }}>Products</button>
           <a href="#features" onClick={() => setMobileMenuOpen(false)}>Features</a>
-          <a href="#showcase-use-cases" onClick={() => setMobileMenuOpen(false)}>Use Cases</a>
-          <a href="#pricing" onClick={() => setMobileMenuOpen(false)}>Pricing</a>
+          <button onClick={() => { setMobileMenuOpen(false); onNavigate("about"); }}>About</button>
         </div>
         {token ? (
           <button className="try-button" onClick={logout}>
@@ -1169,8 +1160,8 @@ function Landing({ startChat, token, logout, onNavigate, openReport }) {
             ["Plus", "For deeper emotional insights", "₹149 / month"],
             ["Care", "For teams and organizations", "Talk to us"],
           ].map(([plan, copy, price], index) => (
-            <article className={index === 1 ? "popular" : ""} key={plan}>
-              {index === 1 && <em>Most popular</em>}
+            <article className={index === 0 ? "popular" : ""} key={plan}>
+              {index === 0 && <em>Most popular</em>}
               <h3>{plan}</h3>
               <p>{copy}</p>
               <strong>{price}</strong>
@@ -1569,6 +1560,11 @@ const pageDetails = {
     "About HOPEMO",
     "An Emotional Intelligence OS for a more human world.",
     "We are building an intelligence layer that helps psychologists, HR teams, educators, and organizations understand people with greater context and clarity. AI provides context; people make the decisions.",
+  ],
+  products: [
+    "Products",
+    "Choose the HOPEMO experience that fits your needs.",
+    "Explore our conversational support, Student Success tools, and the exclusive dashboard for desktop workspaces.",
   ],
   blog: [
     "HOPEMO journal",
@@ -2074,9 +2070,55 @@ const infoContent = {
     ],
   },
 };
+function ProductsPage({ onHome, startChat, startStudentSuccess, onNavigate }) {
+  return (
+    <main className="products-page">
+      <nav>
+        <button className="page-back" onClick={onHome}>
+          <ArrowLeft /> Back
+        </button>
+        <img className="enterprise-logo front-wordmark" src="/hopemo-logo.jpg" alt="HOPEMO — Emotionally Intelligent AI" />
+        <button className="try-button" onClick={startChat}>
+          Explore platform <ArrowRight />
+        </button>
+      </nav>
+      <section className="products-hero">
+        <p>HOPEMO PRODUCTS</p>
+        <h1>Choose the support space that fits your day.</h1>
+        <span>Each product is designed to make human insight more accessible, thoughtful, and useful.</span>
+      </section>
+      <section className="products-grid">
+        <article>
+          <Brain />
+          <p>CONVERSATIONAL SUPPORT</p>
+          <h2>HOPEMO Chatbot</h2>
+          <span>A calm space to reflect, talk through what is on your mind, and receive emotionally aware support.</span>
+          <button className="blue-pill" onClick={startChat}>Open chatbot <ArrowRight /></button>
+        </article>
+        <article>
+          <BookOpen />
+          <p>STUDENT SUCCESS</p>
+          <h2>Student Success</h2>
+          <span>Personalized tools for student reflection, wellbeing, and meaningful progress.</span>
+          <button className="blue-pill" onClick={startStudentSuccess}>Open Student Success <ArrowRight /></button>
+        </article>
+        <article className="exclusive-dashboard-card">
+          <Bot />
+          <p>EXCLUSIVE DASHBOARD</p>
+          <h2>Exclusive Dashboard</h2>
+          <span>Preferred for desktops. A dedicated workspace for a wider, more detailed overview.</span>
+          <a className="blue-pill" href="https://hopemoai-five.vercel.app" target="_blank" rel="noreferrer">Open dashboard <ArrowRight /></a>
+        </article>
+      </section>
+      <PageClosing onHome={onHome} onNavigate={onNavigate} startChat={startChat} />
+    </main>
+  );
+}
+
 function InfoPage({ page, onHome, startChat, onNavigate }) {
   const [label, title, copy] = pageDetails[page] || pageDetails.about;
   const content = infoContent[page] || infoContent.features;
+  const isFaqPage = page === "faqs";
   const [contactForm, setContactForm] = useState({
     name: "",
     email: "",
@@ -2213,15 +2255,22 @@ function InfoPage({ page, onHome, startChat, onNavigate }) {
             {content.sections.map(([heading, items]) => (
               <article key={heading}>
                 <h2>{heading}</h2>
-                {items.map((item) => (
-                  <p key={item}>{item}</p>
-                ))}
+                {items.map((item) => {
+                  if (!isFaqPage) return <p key={item}>{item}</p>;
+                  const divider = item.indexOf("?") + 1;
+                  return (
+                    <div className="faq-item" key={item}>
+                      <h3>{item.slice(0, divider)}</h3>
+                      <p>{item.slice(divider).trim()}</p>
+                    </div>
+                  );
+                })}
               </article>
             ))}
           </div>
           <button
             className="blue-pill"
-            onClick={page === "privacy" ? () => onNavigate("contact") : startChat}
+            onClick={() => onNavigate("contact")}
           >
             Talk to our team <ArrowRight />
           </button>
@@ -2693,6 +2742,13 @@ function HopemoApp() {
         <AboutPage
           onHome={goHome}
           startChat={startChat}
+          onNavigate={navigateToInfoPage}
+        />
+      ) : infoPage === "products" ? (
+        <ProductsPage
+          onHome={goHome}
+          startChat={startChat}
+          startStudentSuccess={startStudentSuccess}
           onNavigate={navigateToInfoPage}
         />
       ) : infoPage ? (
