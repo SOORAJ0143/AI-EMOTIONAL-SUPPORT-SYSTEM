@@ -274,3 +274,14 @@
   .ref-nav .ref-nav-links a:hover{background:#eef6f0}
   .ref-nav.mobile-menu-open .ref-nav-links{opacity:1;pointer-events:auto;transform:translateY(0)}
 }
+
+/* Keep phone controls in their natural, reachable positions. */
+@media(max-width:700px){
+  .mobile-menu-toggle{margin-left:auto}
+}
+@media(max-width:760px){
+  .workspace-header{align-items:flex-start;flex-direction:column}
+  .workspace-header>div:last-child{width:100%;justify-content:flex-start;margin-top:13px}
+  .workspace-header .mobile-home{order:-2}
+  .workspace-header .mobile-chat-menu{order:-1}
+}

@@ -322,7 +322,7 @@ function ChatScreen({
 }) {
   const token = localStorage.getItem("hopemo_access_token") || "";
   const member = user && typeof user === "object" ? user : null;
-  const name = member?.name?.trim().split(" ")?.[0] || "there";
+  const name = member?.name?.trim().split(" ")?.[0] || "user";
   const [conversationId, setConversationId] = useState("");
   const [messages, setMessages] = useState([
     {
@@ -2610,6 +2610,15 @@ function HopemoApp() {
     window.addEventListener("popstate", restoreFromBrowserHistory);
     return () => window.removeEventListener("popstate", restoreFromBrowserHistory);
   }, []);
+
+  useEffect(() => {
+    if (!infoPage) return;
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, behavior: "auto" });
+      document.documentElement.scrollTop = 0;
+      document.body.scrollTop = 0;
+    });
+  }, [infoPage]);
 
   const goHome = () => {
     if (returnToLanding.current) {
