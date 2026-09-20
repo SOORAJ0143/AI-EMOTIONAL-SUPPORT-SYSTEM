@@ -2083,7 +2083,7 @@ const infoContent = {
     ],
   },
 };
-function InfoPage({ page, onHome, startChat }) {
+function InfoPage({ page, onHome, startChat, onNavigate }) {
   const [label, title, copy] = pageDetails[page] || pageDetails.about;
   const content = infoContent[page] || infoContent.features;
   return (
@@ -2120,7 +2120,10 @@ function InfoPage({ page, onHome, startChat }) {
             Email customer support <ArrowRight />
           </a>
         ) : (
-          <button className="blue-pill" onClick={startChat}>
+          <button
+            className="blue-pill"
+            onClick={page === "privacy" ? () => onNavigate("contact") : startChat}
+          >
             Talk to our team <ArrowRight />
           </button>
         )}
@@ -2455,7 +2458,12 @@ function HopemoApp() {
       ) : infoPage === "about" ? (
         <AboutPage onHome={goHome} startChat={startChat} />
       ) : infoPage ? (
-        <InfoPage page={infoPage} onHome={goHome} startChat={startChat} />
+        <InfoPage
+          page={infoPage}
+          onHome={goHome}
+          startChat={startChat}
+          onNavigate={navigateToInfoPage}
+        />
       ) : (
         <Landing
           startChat={startChat}
