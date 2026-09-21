@@ -26,7 +26,10 @@ class Settings(BaseSettings):
     SMTP_PORT: int = 587
     SMTP_USERNAME: Optional[str] = None
     SMTP_PASSWORD: Optional[str] = None
-    SMTP_FROM_EMAIL: Optional[str] = None
+    # Keep the visible OTP sender aligned with the HOPEMO support inbox. The
+    # deployed SMTP credentials must belong to this same Gmail account.
+    SMTP_FROM_EMAIL: str = "hopemoai.in@gmail.com"
+    SMTP_FROM_NAME: str = "HOPEMO"
     SMTP_USE_TLS: bool = True
     OTP_EXPIRE_MINUTES: int = 10
     GOOGLE_CLIENT_ID: Optional[str] = None

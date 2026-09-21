@@ -90,7 +90,7 @@ def _send_otp(email: str, code: str, subject: str = "Your HOPEMO verification co
         raise RuntimeError("Email verification is not configured. Set SMTP_HOST, SMTP_USERNAME, SMTP_PASSWORD, and SMTP_FROM_EMAIL.")
     message = EmailMessage()
     message["Subject"] = subject
-    message["From"] = f"HOPEMO <{settings.SMTP_FROM_EMAIL}>"
+    message["From"] = f"{settings.SMTP_FROM_NAME} <{settings.SMTP_FROM_EMAIL}>"
     message["To"] = email
     message["Reply-To"] = settings.SMTP_FROM_EMAIL
     message["X-Entity-Ref-ID"] = code
