@@ -2070,7 +2070,7 @@ const infoContent = {
     ],
   },
 };
-function ProductsPage({ onHome, startChat, startStudentSuccess, onNavigate }) {
+function ProductsPage({ onHome, startChat, startStudentSuccess, onChatFromProducts, onNavigate }) {
   return (
     <main className="products-page">
       <nav>
@@ -2092,7 +2092,7 @@ function ProductsPage({ onHome, startChat, startStudentSuccess, onNavigate }) {
           <p>CONVERSATIONAL SUPPORT</p>
           <h2>HOPEMO Chatbot</h2>
           <span>A calm space to reflect, talk through what is on your mind, and receive emotionally aware support.</span>
-          <button className="blue-pill" onClick={startChat}>Open chatbot <ArrowRight /></button>
+          <button className="blue-pill" onClick={onChatFromProducts}>Open chatbot <ArrowRight /></button>
         </article>
         <article>
           <p>STUDENT SUCCESS</p>
@@ -2585,6 +2585,7 @@ function HopemoApp() {
   const [infoPage, setInfoPage] = useState(infoPageFromAddress);
   const landingScrollPosition = useRef(0);
   const returnToLanding = useRef(false);
+  const returnInfoPage = useRef("");
   const [token, setToken] = useState(
     localStorage.getItem("hopemo_access_token") || "",
   );
@@ -2612,6 +2613,20 @@ function HopemoApp() {
       return;
     }
     rememberLandingPosition();
+    setInfoPage("");
+    setScreen("student");
+  }
+  function startChatFromProducts() {
+    returnInfoPage.current = "products";
+    setInfoPage("");
+    setScreen("chat");
+  }
+  function startStudentSuccessFromProducts() {
+    if (!token) {
+      setAuthOpen(true);
+      return;
+    }
+    returnInfoPage.current = "products";
     setInfoPage("");
     setScreen("student");
   }
@@ -2691,6 +2706,14 @@ function HopemoApp() {
   }, [infoPage]);
 
   const goHome = () => {
+    if (returnInfoPage.current) {
+      const page = returnInfoPage.current;
+      returnInfoPage.current = "";
+      setInfoPage(page);
+      setScreen("home");
+      window.requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: "auto" }));
+      return;
+    }
     if (returnToLanding.current) {
       returnToLanding.current = false;
       setInfoPage("");
@@ -2745,7 +2768,8 @@ function HopemoApp() {
         <ProductsPage
           onHome={goHome}
           startChat={startChat}
-          startStudentSuccess={startStudentSuccess}
+          startStudentSuccess={startStudentSuccessFromProducts}
+          onChatFromProducts={startChatFromProducts}
           onNavigate={navigateToInfoPage}
         />
       ) : infoPage ? (
