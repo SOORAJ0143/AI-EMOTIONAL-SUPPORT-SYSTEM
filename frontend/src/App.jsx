@@ -2089,21 +2089,18 @@ function ProductsPage({ onHome, startChat, startStudentSuccess, onNavigate }) {
       </section>
       <section className="products-grid">
         <article>
-          <Brain />
           <p>CONVERSATIONAL SUPPORT</p>
           <h2>HOPEMO Chatbot</h2>
           <span>A calm space to reflect, talk through what is on your mind, and receive emotionally aware support.</span>
           <button className="blue-pill" onClick={startChat}>Open chatbot <ArrowRight /></button>
         </article>
         <article>
-          <BookOpen />
           <p>STUDENT SUCCESS</p>
           <h2>Student Success</h2>
           <span>Personalized tools for student reflection, wellbeing, and meaningful progress.</span>
           <button className="blue-pill" onClick={startStudentSuccess}>Open Student Success <ArrowRight /></button>
         </article>
         <article className="exclusive-dashboard-card">
-          <Bot />
           <p>EXCLUSIVE DASHBOARD</p>
           <h2>Exclusive Dashboard</h2>
           <span>Preferred for desktops. A dedicated workspace for a wider, more detailed overview.</span>
