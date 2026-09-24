@@ -103,7 +103,9 @@ function AuthModal({ onSuccess, onClose }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [code, setCode] = useState("");
+  const [resetStep, setResetStep] = useState("code");
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [loading, setLoading] = useState(false);
@@ -125,9 +127,26 @@ function AuthModal({ onSuccess, onClose }) {
       else if (mode === "forgot") {
         const result = await requestPasswordReset(email);
         setNotice(result.message);
+        setResetStep("code");
+        setCode("");
+        setPassword("");
+        setConfirmPassword("");
         setMode("reset");
-      } else if (mode === "reset")
+      } else if (mode === "reset") {
+        if (resetStep === "code") {
+          if (code.length !== 6) {
+            setError("Enter the six-digit reset code from your email.");
+            return;
+          }
+          setResetStep("password");
+          return;
+        }
+        if (password !== confirmPassword) {
+          setError("The passwords do not match.");
+          return;
+        }
         finish(await resetPassword(email, code, password));
+      }
       else
         finish(
           await authenticate(
@@ -166,6 +185,7 @@ function AuthModal({ onSuccess, onClose }) {
   }
   const verifying = mode === "verify",
     resetting = mode === "reset",
+    enteringResetCode = resetting && resetStep === "code",
     requestingReset = mode === "forgot";
   return (
     <div className="auth-overlay">
@@ -194,8 +214,10 @@ function AuthModal({ onSuccess, onClose }) {
         <p>
           {verifying
             ? `Enter the six-digit code sent to ${email}.`
-            : resetting
-              ? "Enter the reset code from your email and choose a new password."
+            : enteringResetCode
+              ? "Enter the six-digit reset code from your email."
+              : resetting
+                ? "Choose and confirm your new password."
               : requestingReset
                 ? "Enter your account email and we’ll send a reset code."
                 : mode === "login"
@@ -221,7 +243,7 @@ function AuthModal({ onSuccess, onClose }) {
               required
             />
           )}
-          {(mode === "login" || mode === "register" || resetting) && (
+          {(mode === "login" || mode === "register" || (resetting && !enteringResetCode)) && (
             <input
               value={password}
               onChange={(e) => setPassword(e.target.value)}
@@ -235,7 +257,17 @@ function AuthModal({ onSuccess, onClose }) {
               required
             />
           )}
-          {(verifying || resetting) && (
+          {resetting && !enteringResetCode && (
+            <input
+              value={confirmPassword}
+              onChange={(e) => setConfirmPassword(e.target.value)}
+              type="password"
+              placeholder="Confirm new password"
+              minLength="8"
+              required
+            />
+          )}
+          {(verifying || enteringResetCode) && (
             <input
               className="otp-input"
               value={code}
@@ -258,7 +290,9 @@ function AuthModal({ onSuccess, onClose }) {
               : verifying
                 ? "Verify email"
                 : resetting
-                  ? "Change password"
+                  ? enteringResetCode
+                    ? "Continue"
+                    : "Save new password"
                   : requestingReset
                     ? "Send reset code"
                     : mode === "login"
@@ -275,7 +309,7 @@ function AuthModal({ onSuccess, onClose }) {
             Resend verification code
           </button>
         ) : resetting ? (
-          <button className="text-button" onClick={() => setMode("login")}>
+          <button className="text-button" onClick={() => { setMode("login"); setResetStep("code"); }}>
             Back to sign in
           </button>
         ) : requestingReset ? (
